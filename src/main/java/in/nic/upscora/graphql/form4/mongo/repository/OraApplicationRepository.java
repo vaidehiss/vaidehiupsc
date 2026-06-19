@@ -6,40 +6,40 @@ import in.nic.upscora.graphql.form4.mongo.entity.application.OraApplication;
 import in.nic.upscora.graphql.form4.service.OraExam1ReportService;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ApplicationScoped
 public class OraApplicationRepository implements PanacheMongoRepository<OraApplication> {
 
-    @Inject
-    OraExam1ReportService reportService;
-    
-    
+    private final OraExam1ReportService reportService;
+
+    public OraApplicationRepository(OraExam1ReportService reportService) {
+        this.reportService = reportService;
+    }
+
     public List<OraApplication> findAllApplicants() {
         return listAll();
     }
-    
-    
-    public OraApplication findByURN(String URN) {
-        return find("applicant_urn", URN).firstResult();
+
+    public OraApplication findByURN(String urn) {
+        return find("applicant_urn", urn).firstResult();
     }
 
-    public List<OraApplication> findAllSubmittedByURN(String URN) {
-        return find("{'applicant_urn': ?1, 'application_info.status': 'SUBMITTED'}", URN).list();
+    public List<OraApplication> findAllSubmittedByURN(String urn) {
+        return find("{'applicant_urn': ?1, 'application_info.status': 'SUBMITTED'}", urn).list();
     }
 
-    public OraApplication findByURNAndVacancy(String URN,String vacancyId) {
-        return find("applicant_urn =?1 and vacancyId = ?2", URN,vacancyId).firstResult();
+    public OraApplication findByURNAndVacancy(String urn, String vacancyId) {
+        return find("applicant_urn =?1 and vacancyId = ?2", urn, vacancyId).firstResult();
     }
 
     public List<OraApplication> findByVacancyId(String vacancyId) {
         return find("vacancyId", vacancyId).list();
     }
 
-    public OraApplication findByURNAndRecruitmentCode(String URN, String recruitmentCode) {
-        return find("applicant_urn = ?1 and application_info.recruitmentCode = ?2", URN, recruitmentCode).firstResult();
+    public OraApplication findByURNAndRecruitmentCode(String urn, String recruitmentCode) {
+        return find("applicant_urn = ?1 and application_info.recruitmentCode = ?2", urn, recruitmentCode).firstResult();
     }
 
     public List<OraApplication> findByRecruitmentCode(String recruitmentCode) {
@@ -47,11 +47,14 @@ public class OraApplicationRepository implements PanacheMongoRepository<OraAppli
     }
 
     public List<OraApplication> findSubmittedByVacancyIds(List<String> vacancyIds) {
-        return find("{'vacancyId': { $in: ?1 }, 'application_info.status': 'SUBMITTED', 'testing': { $ne: true }}", vacancyIds).list();
+        return find("{'vacancyId': { $in: ?1 }, 'application_info.status': 'SUBMITTED', 'testing': { $ne: true }}",
+                vacancyIds).list();
     }
 
     public List<OraApplication> findSubmittedByRecruitmentCode(String recruitmentCode) {
-        return find("{'application_info.recruitmentCode': ?1, 'application_info.status': 'SUBMITTED', 'testing': { $ne: true }}", recruitmentCode).list();
+        return find(
+                "{'application_info.recruitmentCode': ?1, 'application_info.status': 'SUBMITTED', 'testing': { $ne: true }}",
+                recruitmentCode).list();
     }
 
     public OraApplication findById(Long id) {
@@ -75,11 +78,5 @@ public class OraApplicationRepository implements PanacheMongoRepository<OraAppli
         PanacheMongoRepository.super.delete(entity);
         reportService.refreshFromApplication(entity);
     }
-
-    
-
-
-    
-
 
 }

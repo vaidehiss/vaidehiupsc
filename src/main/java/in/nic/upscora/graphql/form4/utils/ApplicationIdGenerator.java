@@ -1,8 +1,8 @@
 package in.nic.upscora.graphql.form4.utils;
 
+import in.nic.upscora.graphql.form4.exception.AppException;
 import in.nic.upscora.graphql.form4.mongo.repository.OraApplicationCounterRepository;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
@@ -12,8 +12,11 @@ public class ApplicationIdGenerator {
 
     private static final String DEFAULT_COUNTER_ID = "EXAM_APPLICATION_ID";
 
-    @Inject
-    OraApplicationCounterRepository counterRepository;
+    private final OraApplicationCounterRepository counterRepository;
+
+    public ApplicationIdGenerator(OraApplicationCounterRepository counterRepository) {
+        this.counterRepository = counterRepository;
+    }
 
     @ConfigProperty(name = "application.id.prefix", defaultValue = "")
     String applicationIdPrefix;
@@ -34,7 +37,7 @@ public class ApplicationIdGenerator {
             return Long.parseLong(applicationId);
         } catch (Exception e) {
             log.error("Failed to generate application ID", e);
-            throw new RuntimeException("Failed to generate application ID", e);
+            throw new AppException("Failed to generate application ID", e);
         }
     }
 

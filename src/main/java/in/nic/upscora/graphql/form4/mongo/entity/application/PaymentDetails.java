@@ -15,11 +15,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PaymentDetails {
 
-//    private String payment_mode;
-//    private String payment_status;
-//    private String transactionId;
-//    private Integer amount;
-//    private String paid_at;
 
     @Name("paymentStatus")
     private String status;

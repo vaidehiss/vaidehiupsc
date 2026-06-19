@@ -1,13 +1,29 @@
 package in.nic.upscora.graphql.form4.utils;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+
 import in.nic.upscora.graphql.form4.mongo.entity.application.OraApplication;
 
 public class OraApplicationUtil {
 
-    private OraApplicationUtil(){
+    private static final ZoneId IST_ZONE = ZoneId.of("Asia/Kolkata");
+    private static final DateTimeFormatter IST_TIMESTAMP_FORMATTER = DateTimeFormatter
+            .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
+
+    private OraApplicationUtil() {
     }
 
-     public static String abbreviate(String value, int max) {
+    public static LocalDateTime nowIst() {
+        return LocalDateTime.now(IST_ZONE);
+    }
+
+    public static String nowIstString() {
+        return nowIst().format(IST_TIMESTAMP_FORMATTER);
+    }
+
+    public static String abbreviate(String value, int max) {
         if (value == null) {
             return "";
         }

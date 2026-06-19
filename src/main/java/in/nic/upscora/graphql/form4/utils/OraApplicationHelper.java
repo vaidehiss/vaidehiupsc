@@ -51,7 +51,6 @@ public class OraApplicationHelper {
         this.ngrpDocumentClient = ngrpDocumentClient;
         this.vacancyRepo = vacancyRepo;
         this.objectMapper = objectMapper;
-
     }
 
     public void copyDocsToExamBucket(String applicantUrn, String postId, CandidateProfile candidateProfile)
@@ -135,56 +134,6 @@ public class OraApplicationHelper {
         return vacancy.getExperienceCalculationDate().format(EXPERIENCE_DATE_FORMATTER);
     }
 
-    public void sendProfileCompletionNotifications(UserProfile userProfile, String applicantURN) {
-        try {
-            String correlationId = "otp-" + applicantURN + "-" + System.currentTimeMillis();
-
-            Map<String, ChannelConfig> channels = new HashMap<>();
-
-            // SMS Channel
-            if (userProfile.getMobileNo() != null) {
-                String mobile = userProfile.getMobileNo().toString();
-                if (!mobile.startsWith("+")) {
-                    mobile = "+91" + mobile;
-                }
-                channels.put("sms", ChannelConfig.builder()
-                        .recipient(mobile)
-                        .templateName("CAF_SUBMITTED")
-                        .variables(Map.of(
-                                "name",
-                                userProfile.getCandidateName() != null ? userProfile.getCandidateName() : CANDIDATE,
-                                "urn", applicantURN))
-                        .metadata(Metadata.builder().ttlSeconds(300).build())
-                        .build());
-            }
-
-            // Email Channel
-            if (userProfile.getEmail() != null) {
-                channels.put(EMAIL, ChannelConfig.builder()
-                        .recipient(userProfile.getEmail())
-                        .templateName("CAF_SUBMITTED")
-                        .variables(Map.of(
-                                "name",
-                                userProfile.getCandidateName() != null ? userProfile.getCandidateName() : CANDIDATE,
-                                "urn", applicantURN))
-                        .metadata(Metadata.builder().ttlSeconds(300).build())
-                        .build());
-            }
-
-            if (!channels.isEmpty()) {
-                NotificationRequest request = NotificationRequest.builder()
-                        .eventCode("otp")
-                        .channels(channels)
-                        .build();
-
-                notificationClient.sendNotification(correlationId, "en", request);
-                log.info("Profile completion notifications sent for URN: {}", applicantURN);
-            }
-        } catch (Exception e) {
-            log.error("Failed to send profile completion notifications for URN: {}", applicantURN, e);
-        }
-    }
-
     public void clearCafDocsFromRecruitmentBucket(String applicantUrn, String postId) {
         if (applicantUrn == null || applicantUrn.isBlank() || postId == null || postId.isBlank()) {
             log.warn("Skipping recruitment bucket clear due to missing identifiers applicantUrn={} postId={}",
@@ -218,57 +167,6 @@ public class OraApplicationHelper {
         }
     }
 
-    public void sendCafLockedNotifications(UserProfile userProfile, OraApplication oraApplication) {
-        try {
-            String applicantURN = oraApplication.getApplicant_urn();
-            String correlationId = "caf-" + applicantURN + "-" + System.currentTimeMillis();
-
-            Map<String, ChannelConfig> channels = new HashMap<>();
-
-            Map<String, String> variables = Map.of(
-                    "name", userProfile.getCandidateName() != null ? userProfile.getCandidateName() : CANDIDATE,
-                    "urn", applicantURN,
-                    "exam", oraApplication.getApplication_info().getPost_name(),
-                    "year", oraApplication.getApplication_info().getRecruitmentYear());
-
-            // SMS Channel
-            if (userProfile.getMobileNo() != null) {
-                String mobile = userProfile.getMobileNo().toString();
-                if (!mobile.startsWith("+")) {
-                    mobile = "+91" + mobile;
-                }
-                channels.put("sms", ChannelConfig.builder()
-                        .recipient(mobile)
-                        .templateName("CAF_LOCKED")
-                        .variables(variables)
-                        .metadata(Metadata.builder().ttlSeconds(300).build())
-                        .build());
-            }
-
-            // Email Channel
-            if (userProfile.getEmail() != null) {
-                channels.put(EMAIL, ChannelConfig.builder()
-                        .recipient(userProfile.getEmail())
-                        .templateName("CAF_LOCKED")
-                        .variables(variables)
-                        .metadata(Metadata.builder().ttlSeconds(300).build())
-                        .build());
-            }
-
-            if (!channels.isEmpty()) {
-                NotificationRequest request = NotificationRequest.builder()
-                        .eventCode("otp")
-                        .channels(channels)
-                        .build();
-
-                notificationClient.sendNotification(correlationId, "en", request);
-                log.info("CAF Locked notifications sent for URN: {}", applicantURN);
-            }
-        } catch (Exception e) {
-            log.error("Failed to send CAF Locked notifications for URN: {}", oraApplication.getApplicant_urn(), e);
-        }
-    }
-
     public UserProfileResponse buildUserProfileResponse(UserProfile userProfile) throws GraphQLException {
         if (userProfile == null) {
             throw new GraphQLException("User Profile not found");
@@ -288,7 +186,6 @@ public class OraApplicationHelper {
 
         if (cafProfile.getPreIdentity() == null)
             missingSections.add("preIdentity");
-        // if (cafProfile.getDocs() == null) missingSections.add("docs");
         if (cafProfile.getIdentity() == null)
             missingSections.add("identity");
         if (cafProfile.getUidData() == null && cafProfile.getPidData() == null) {
@@ -316,19 +213,47 @@ public class OraApplicationHelper {
         return missingSections;
     }
 
+    // ==========================================
+    // NOTIFICATION METHODS (Refactored)
+    // ==========================================
+
+    public void sendProfileCompletionNotifications(UserProfile userProfile, String applicantURN) {
+        Map<String, String> variables = Map.of(
+                "name", userProfile.getCandidateName() != null ? userProfile.getCandidateName() : CANDIDATE,
+                "urn", applicantURN);
+        dispatchNotification(userProfile, applicantURN, "CAF_SUBMITTED", variables, "otp", "Profile completion");
+    }
+
+    public void sendCafLockedNotifications(UserProfile userProfile, OraApplication oraApplication) {
+        String applicantURN = oraApplication.getApplicant_urn();
+        Map<String, String> variables = Map.of(
+                "name", userProfile.getCandidateName() != null ? userProfile.getCandidateName() : CANDIDATE,
+                "urn", applicantURN,
+                "exam", oraApplication.getApplication_info().getPost_name(),
+                "year", oraApplication.getApplication_info().getRecruitmentYear());
+        dispatchNotification(userProfile, applicantURN, "CAF_LOCKED", variables, "caf", "CAF Locked");
+    }
+
     public void sendFinalSubmissionNotifications(UserProfile userProfile, OraApplication oraApplication) {
+        String applicantURN = oraApplication.getApplicant_urn();
+        Map<String, String> variables = Map.of(
+                "name", userProfile.getCandidateName() != null ? userProfile.getCandidateName() : CANDIDATE,
+                "urn", applicantURN,
+                "appno", oraApplication.getApplicationId().toString(),
+                "exam", oraApplication.getApplication_info().getPost_name(),
+                "year", oraApplication.getApplication_info().getRecruitmentYear());
+        dispatchNotification(userProfile, applicantURN, "FINAL_SUBMISSION", variables, "otp", "Final submission");
+    }
+
+    /**
+     * Centralized helper to build and dispatch notifications across different
+     * channels.
+     */
+    private void dispatchNotification(UserProfile userProfile, String applicantUrn, String templateName,
+            Map<String, String> variables, String correlationPrefix, String logContext) {
         try {
-            String applicantURN = oraApplication.getApplicant_urn();
-            String correlationId = "otp-" + applicantURN + "-" + System.currentTimeMillis();
-
+            String correlationId = correlationPrefix + "-" + applicantUrn + "-" + System.currentTimeMillis();
             Map<String, ChannelConfig> channels = new HashMap<>();
-
-            Map<String, String> variables = Map.of(
-                    "name", userProfile.getCandidateName() != null ? userProfile.getCandidateName() : CANDIDATE,
-                    "urn", applicantURN,
-                    "appno", oraApplication.getApplicationId().toString(),
-                    "exam", oraApplication.getApplication_info().getPost_name(),
-                    "year", oraApplication.getApplication_info().getRecruitmentYear());
 
             // SMS Channel
             if (userProfile.getMobileNo() != null) {
@@ -338,7 +263,7 @@ public class OraApplicationHelper {
                 }
                 channels.put("sms", ChannelConfig.builder()
                         .recipient(mobile)
-                        .templateName("FINAL_SUBMISSION")
+                        .templateName(templateName)
                         .variables(variables)
                         .metadata(Metadata.builder().ttlSeconds(300).build())
                         .build());
@@ -348,7 +273,7 @@ public class OraApplicationHelper {
             if (userProfile.getEmail() != null) {
                 channels.put(EMAIL, ChannelConfig.builder()
                         .recipient(userProfile.getEmail())
-                        .templateName("FINAL_SUBMISSION")
+                        .templateName(templateName)
                         .variables(variables)
                         .metadata(Metadata.builder().ttlSeconds(300).build())
                         .build());
@@ -356,17 +281,15 @@ public class OraApplicationHelper {
 
             if (!channels.isEmpty()) {
                 NotificationRequest request = NotificationRequest.builder()
-                        .eventCode("otp")
+                        .eventCode("otp") // all current implementations use "otp" as the eventCode
                         .channels(channels)
                         .build();
 
                 notificationClient.sendNotification(correlationId, "en", request);
-                log.info("Final submission notifications sent for URN: {}", applicantURN);
+                log.info("{} notifications sent for URN: {}", logContext, applicantUrn);
             }
         } catch (Exception e) {
-            log.error("Failed to send final submission notifications for URN: {}", oraApplication.getApplicant_urn(),
-                    e);
+            log.error("Failed to send {} notifications for URN: {}", logContext, applicantUrn, e);
         }
     }
-
 }

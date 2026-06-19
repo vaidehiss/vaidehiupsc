@@ -113,14 +113,6 @@ public class OraApplication {
     //CentrePreference
     private List<String> centerPreferences;
 
-   
-//    private String paymentMode;
-//    private String paymentStatus;
-//    private String transactionId;
-//    private Integer amount;
-//    private String paymentDateTime;
-//    //Special Handling
-//    private List<PaymentDetails> paymentDetails;
     @Name("paymentDetails")
     @BsonProperty("payment_details")
     private PaymentDetails payment_details;

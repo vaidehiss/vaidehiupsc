@@ -3,8 +3,6 @@ package in.nic.upscora.graphql.form4.mongo.repository;
 import io.quarkus.mongodb.panache.PanacheMongoRepository;
 import jakarta.enterprise.context.ApplicationScoped;
 
-import java.util.List;
-
 import in.nic.upscora.graphql.form4.mongo.entity.caf.CandidateProfile;
 
 @ApplicationScoped

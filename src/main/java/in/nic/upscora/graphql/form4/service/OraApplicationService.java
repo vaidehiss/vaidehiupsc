@@ -1,8 +1,5 @@
 package in.nic.upscora.graphql.form4.service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -61,15 +58,13 @@ import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @Slf4j
 @ApplicationScoped
 public class OraApplicationService {
 
-    private static final ZoneId IST_ZONE = ZoneId.of("Asia/Kolkata");
-    private static final DateTimeFormatter IST_TIMESTAMP_FORMATTER = DateTimeFormatter
-            .ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS");
     private static final String PAYMENT_DETAILS_RESPONSE_LOG = "getPaymentDetailsByUrnAndRecruitmentCode | response={}";
     private static final String DELETE_ACC_RESPONSE_LOG = "deleteAccount | response={}";
     private static final String SUBMITTED = "SUBMITTED";
@@ -109,14 +104,6 @@ public class OraApplicationService {
 
     @ConfigProperty(name = "ngrp.api.lang", defaultValue = "en")
     String ngrpLang;
-
-    private LocalDateTime nowIst() {
-        return LocalDateTime.now(IST_ZONE);
-    }
-
-    private String nowIstString() {
-        return nowIst().format(IST_TIMESTAMP_FORMATTER);
-    }
 
     public List<OraApplication> getAllApplicants() {
         log.info("getAllApplicants | request=fetch-all");
@@ -320,7 +307,7 @@ public class OraApplicationService {
         oraApplication.setSubmitDeclarationAccepted(false);
         oraApplication.setCenterDeclarationAccepted(false);
         oraApplication.setTesting(testing);
-        oraApplication.setCreated_at(nowIst());
+        oraApplication.setCreated_at(OraApplicationUtil.nowIst());
         oraRepo.persist(oraApplication);
         log.info(
                 "addApplicant | persistStatus=SUCCESS | applicationStatus={} | cafLocked={} | profileLocked={} | persisted={}",
@@ -367,38 +354,62 @@ public class OraApplicationService {
         return cafProfile;
     }
 
-    @CacheInvalidateAll(cacheName = "ora-applications")
-    public OraApplication updateApplicantAgeRelaxation(AgeRelaxation updateRequest) {
-        log.info("updateApplicantAgeRelaxation | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
-                updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
+    // Update Code Start
+
+    private OraApplication processApplicationUpdate(
+            String urn,
+            String vacancyId,
+            String stepKey,
+            boolean requireProfileUnlocked,
+            Consumer<OraApplication> specificUpdates) {
+
+        OraApplication oraApplication = getApplicationByUrnAndVacany(urn, vacancyId);
 
         if (oraApplication == null) {
             log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException("Applicant URN already exists. Cannot update");
+            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
         }
 
         if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
             log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
             throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
         }
-        ensureProfileUnlocked(oraApplication);
 
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
+        if (requireProfileUnlocked) {
+            ensureProfileUnlocked(oraApplication);
+        }
 
-        oraApplication.setClaimAgeRelaxation(updateRequest.getClaimAgeRelaxation());
-        oraApplication.setRelaxationCategoryCode(updateRequest.getRelaxationCategoryCode());
-        oraApplication.setSupportDocument(updateRequest.getSupportDocument());
-        oraApplication.setBiggerFontSize(updateRequest.getBiggerFontSize());
-        oraApplication.setCompensatoryTime(updateRequest.getCompensatoryTime());
-        oraApplication.setWantScribe(updateRequest.getWantScribe());
-        oraApplication.setAssistiveDevice(updateRequest.getAssistiveDevice());
-        oraApplication.setAssistiveDevices(updateRequest.getAssistiveDevices());
+        // Execute the unique updates passed via lambda
+        specificUpdates.accept(oraApplication);
 
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
+        // Apply common updates and save
+        if (stepKey != null && oraApplication.getApplication_info() != null) {
+            oraApplication.getApplication_info().setStepKey(stepKey);
+        }
+        oraApplication.setUpdated_at(OraApplicationUtil.nowIst());
         oraRepo.update(oraApplication);
+
+        return oraApplication;
+    }
+
+    @CacheInvalidateAll(cacheName = "ora-applications")
+    public OraApplication updateApplicantAgeRelaxation(AgeRelaxation updateRequest) {
+
+        log.info("updateApplicantAgeRelaxation | request={}", oraApplicationHelper.safeJson(updateRequest));
+
+        OraApplication oraApplication = processApplicationUpdate(updateRequest.getApplicant_info().getApplicant_urn(),
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> {
+                    app.setClaimAgeRelaxation(updateRequest.getClaimAgeRelaxation());
+                    app.setRelaxationCategoryCode(updateRequest.getRelaxationCategoryCode());
+                    app.setSupportDocument(updateRequest.getSupportDocument());
+                    app.setBiggerFontSize(updateRequest.getBiggerFontSize());
+                    app.setCompensatoryTime(updateRequest.getCompensatoryTime());
+                    app.setWantScribe(updateRequest.getWantScribe());
+                    app.setAssistiveDevice(updateRequest.getAssistiveDevice());
+                    app.setAssistiveDevices(updateRequest.getAssistiveDevices());
+                    app.setUpdated_at(OraApplicationUtil.nowIst());
+                });
 
         log.info("updateApplicantAgeRelaxation | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -409,28 +420,10 @@ public class OraApplicationService {
     public OraApplication updateApplicantEssentialQualification(EssentialQualification updateRequest) {
         log.info("updateApplicantEssentialQualification | request={}", oraApplicationHelper.safeJson(updateRequest));
 
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setEssential_qualification(updateRequest.getEssential_qualification());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setEssential_qualification(updateRequest.getEssential_qualification()));
 
         log.info("updateApplicantEssentialQualification | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -441,30 +434,15 @@ public class OraApplicationService {
     public OraApplication updateApplicantEssentialExperience(EssentialExperience updateRequest) {
         log.info("updateApplicantEssentialExperience | request={}", oraApplicationHelper.safeJson(updateRequest));
 
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplicationHelper.applyExperienceCalculationDate(updateRequest.getApplicant_info().getVacancyId(),
-                updateRequest.getEssential_experience());
-        oraApplication.setEssential_experience(updateRequest.getEssential_experience());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> {
+                    oraApplicationHelper.applyExperienceCalculationDate(
+                            updateRequest.getApplicant_info().getVacancyId(),
+                            updateRequest.getEssential_experience());
+                    app.setEssential_experience(updateRequest.getEssential_experience());
+                });
 
         log.info("updateApplicantEssentialExperience | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -473,30 +451,16 @@ public class OraApplicationService {
 
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantDesirableQualification(DesirableQualification updateRequest) {
+
         log.info("updateApplicantDesirableQualification | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> {
+                    app.setDesirableQualificationApplicable(updateRequest.getDesirableQualificationApplicable());
+                    app.setDesirable_qualification(updateRequest.getDesirable_qualification());
 
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setDesirableQualificationApplicable(updateRequest.getDesirableQualificationApplicable());
-        oraApplication.setDesirable_qualification(updateRequest.getDesirable_qualification());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                });
 
         log.info("updateApplicantDesirableQualification | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -506,31 +470,17 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantDesirableExperience(DesirableExperience updateRequest) {
         log.info("updateApplicantDesirableExperience | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplicationHelper.applyExperienceCalculationDate(updateRequest.getApplicant_info().getVacancyId(),
-                updateRequest.getDesirable_experience());
-        oraApplication.setDesirableExperienceApplicable(updateRequest.getDesirableExperienceApplicable());
-        oraApplication.setDesirable_experience(updateRequest.getDesirable_experience());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> {
+                    oraApplicationHelper.applyExperienceCalculationDate(
+                            updateRequest.getApplicant_info().getVacancyId(),
+                            updateRequest.getDesirable_experience());
+                    app.setDesirableExperienceApplicable(updateRequest.getDesirableExperienceApplicable());
+                    app.setDesirable_experience(updateRequest.getDesirable_experience());
+                });
 
         log.info("updateApplicantDesirableExperience | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -539,30 +489,16 @@ public class OraApplicationService {
 
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantAdditionalQualification(AdditionalQualification updateRequest) {
+
         log.info("updateApplicantAdditionalQualification | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setAdditionalQualificationApplicable(updateRequest.getAdditionalQualificationApplicable());
-        oraApplication.setAdditional_qualification(updateRequest.getAdditional_qualification());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> {
+                    app.setAdditionalQualificationApplicable(updateRequest.getAdditionalQualificationApplicable());
+                    app.setAdditional_qualification(updateRequest.getAdditional_qualification());
+                });
 
         log.info("updateApplicantAdditionalQualification | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -571,32 +507,19 @@ public class OraApplicationService {
 
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantAdditionalExperience(AdditionalExperience updateRequest) {
+
         log.info("updateApplicantAdditionalExperience | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplicationHelper.applyExperienceCalculationDate(updateRequest.getApplicant_info().getVacancyId(),
-                updateRequest.getAdditional_experience());
-        oraApplication.setAdditionalExperienceApplicable(updateRequest.getAdditionalExperienceApplicable());
-        oraApplication.setAdditional_experience(updateRequest.getAdditional_experience());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> {
+                    oraApplicationHelper.applyExperienceCalculationDate(
+                            updateRequest.getApplicant_info().getVacancyId(),
+                            updateRequest.getAdditional_experience());
+                    app.setAdditionalExperienceApplicable(updateRequest.getAdditionalExperienceApplicable());
+                    app.setAdditional_experience(updateRequest.getAdditional_experience());
+                });
 
         log.info("updateApplicantAdditionalExperience | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -606,27 +529,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantNet(Net updateRequest) {
         log.info("updateApplicantNet | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setNetQualifications(updateRequest.getNetQualifications());
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setNetQualifications(updateRequest.getNetQualifications()));
 
         log.info("updateApplicantNet | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -635,29 +542,13 @@ public class OraApplicationService {
 
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantGate(Gate updateRequest) {
+
         log.info("updateApplicantGate | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setGateQualifications(updateRequest.getGateQualifications());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setGateQualifications(updateRequest.getGateQualifications()));
 
         log.info("updateApplicantGate | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -667,29 +558,14 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantDiploma(Diploma updateRequest) {
         log.info("updateApplicantDiploma | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setDiplomaApplicable(updateRequest.getDiplomaApplicable());
-        oraApplication.setDiplomas(updateRequest.getDiplomas());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> {
+                    app.setDiplomaApplicable(updateRequest.getDiplomaApplicable());
+                    app.setDiplomas(updateRequest.getDiplomas());
+                });
 
         log.info("updateApplicantDiploma | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -699,28 +575,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantCertificate(CertificateInput updateRequest) {
         log.info("updateApplicantCertificate | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setCertificates(updateRequest.getCertificates());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setCertificates(updateRequest.getCertificates()));
 
         log.info("updateApplicantCertificate | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -730,28 +589,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantInternship(Internship updateRequest) {
         log.info("updateApplicantInternship | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setInternships(updateRequest.getInternships());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setInternships(updateRequest.getInternships()));
 
         log.info("updateApplicantInternship | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -761,28 +603,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantPublication(Publication updateRequest) {
         log.info("updateApplicantPublication | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setPublications(updateRequest.getPublications());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setPublications(updateRequest.getPublications()));
 
         log.info("updateApplicantPublication | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -792,28 +617,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantConference(Conference updateRequest) {
         log.info("updateApplicantConference | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setConferences(updateRequest.getConferences());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setConferences(updateRequest.getConferences()));
 
         log.info("updateApplicantConference | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -823,28 +631,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantProfessionalReg(ProfessionalReg updateRequest) {
         log.info("updateApplicantProfessionalReg | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setRegistrations(updateRequest.getRegistrations());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setRegistrations(updateRequest.getRegistrations()));
 
         log.info("updateApplicantProfessionalReg | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -854,31 +645,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantLanguage(Language updateRequest) {
         log.info("updateApplicantLanguage | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        // if
-        // (oraRepo.findByURNAndVacancy(updateRequest.getApplicant_info().getApplicant_urn(),
-        // updateRequest.getApplicant_info().getVacancyId() ) == null) {
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setLanguages(updateRequest.getLanguages());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setLanguages(updateRequest.getLanguages()));
 
         log.info("updateApplicantLanguage | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -888,28 +659,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantMiscellaneous(Miscellaneous updateRequest) {
         log.info("updateApplicantMiscellaneous | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setAnswers(updateRequest.getAnswers());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> app.setAnswers(updateRequest.getAnswers()));
 
         log.info("updateApplicantMiscellaneous | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -919,29 +673,14 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantOtherDocs(OtherDocs updateRequest) {
         log.info("updateApplicantOtherDocs | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-        ensureProfileUnlocked(oraApplication);
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setOtherDocsApplicable(updateRequest.getOtherDocsApplicable());
-        oraApplication.setMergedDocument(updateRequest.getMergedDocument());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), true,
+                app -> {
+                    app.setOtherDocsApplicable(updateRequest.getOtherDocsApplicable());
+                    app.setMergedDocument(updateRequest.getMergedDocument());
+                });
 
         log.info("updateApplicantOtherDocs | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -951,30 +690,15 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantExamCenter(ExamCenter updateRequest) {
         log.info("updateApplicantExamCenter | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setCenterPreferences(updateRequest.getCenterPreferences());
-        oraApplication.getApplication_info().setCenterDeclarationAccepted(true);
-
-        oraApplication.setCenterDeclarationAccepted(true);
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), false,
+                app -> {
+                    app.setCenterPreferences(updateRequest.getCenterPreferences());
+                    app.getApplication_info().setCenterDeclarationAccepted(true);
+                    app.setCenterDeclarationAccepted(true);
+                });
 
         log.info("updateApplicantExamCenter | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -984,23 +708,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantProfileLock(ProfileLock updateRequest) {
         log.info("updateApplicantProfileLock | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-
-        oraApplication.getApplication_info().setProfileLocked(true);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), null, false,
+                app -> app.getApplication_info().setProfileLocked(true));
 
         log.info("updateApplicantProfileLock | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -1008,24 +720,13 @@ public class OraApplicationService {
 
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication unlockProfile(ProfileLock updateRequest) {
+
         log.info("unlockProfile | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-
-        oraApplication.getApplication_info().setProfileLocked(false);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), null, false,
+                app -> app.getApplication_info().setProfileLocked(false));
 
         log.info("unlockProfile | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -1034,27 +735,11 @@ public class OraApplicationService {
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication updateApplicantPayment(PaymentInput updateRequest) {
         log.info("updateApplicantPayment | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info(APPLICANT_URN_ERR);
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(APPLICATION_SUBMITTED_UPDATE_ERR);
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.setPayment_details(updateRequest.getPayment_details());
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(), false,
+                app -> app.setPayment_details(updateRequest.getPayment_details()));
 
         log.info("updateApplicantPayment | response={}", oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
@@ -1063,51 +748,22 @@ public class OraApplicationService {
 
     @CacheInvalidateAll(cacheName = "ora-applications")
     public OraApplication submitApplication(SubmitApplication updateRequest) {
+
         log.info("submitApplication | request={}", oraApplicationHelper.safeJson(updateRequest));
-        OraApplication oraApplication = getApplicationByUrnAndVacany(
+
+        OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
-                updateRequest.getApplicant_info().getVacancyId());
-
-        if (oraApplication == null) {
-            log.info("submitApplication | updateBlocked=APPLICATION_NOT_FOUND | applicantUrn={} | vacancyId={}",
-                    updateRequest.getApplicant_info().getApplicant_urn(),
-                    updateRequest.getApplicant_info().getVacancyId());
-            throw new ApplicationNotFoundException(APPLICANT_URN_ERR);
-        }
-
-        log.info(
-                "submitApplication | currentStateBeforeSubmit | applicationId={} | applicantUrn={} | vacancyId={} | currentStatus={} | cafLocked={} | profileLocked={} | submitDeclarationAccepted={} | requestSubmittedAt={}",
-                oraApplication.getApplicationId(),
-                oraApplication.getApplicant_urn(),
-                oraApplication.getVacancyId(),
-                OraApplicationUtil.getApplicationInfoStatus(oraApplication),
-                OraApplicationUtil.getCafLocked(oraApplication),
-                OraApplicationUtil.getProfileLocked(oraApplication),
-                updateRequest.isSubmitDeclarationAccepted(),
-                updateRequest.getSubmittedAt());
-
-        if (!isApplicationEditable(oraApplication.getApplication_info().getStatus())) {
-            log.info(
-                    "submitApplication | updateBlocked=ALREADY_SUBMITTED | applicationId={} | applicantUrn={} | vacancyId={} | currentStatus={}",
-                    oraApplication.getApplicationId(),
-                    oraApplication.getApplicant_urn(),
-                    oraApplication.getVacancyId(),
-                    OraApplicationUtil.getApplicationInfoStatus(oraApplication));
-            throw new ApplicationNotFoundException(APPLICATION_SUBMITTED_UPDATE_ERR);
-        }
-
-        String stepKey = updateRequest.getApplicant_info().getStepKey();
-
-        oraApplication.getApplication_info().setSubmitDeclarationAccepted(updateRequest.isSubmitDeclarationAccepted());
-        oraApplication.getApplication_info().setSubmittedAt(nowIst());
-        oraApplication.getApplication_info().setStatus(SUBMITTED);
-
-        oraApplication.getApplication_info().setStepKey(stepKey);
-        oraApplication.setStatus(SUBMITTED);
-        oraApplication.setSubmitDeclarationAccepted(true);
-        oraApplication.setSubmittedAt(nowIstString());
-        oraApplication.setUpdated_at(nowIst());
-        oraRepo.update(oraApplication);
+                updateRequest.getApplicant_info().getVacancyId(), updateRequest.getApplicant_info().getStepKey(),
+                false,
+                app -> {
+                    app.getApplication_info()
+                            .setSubmitDeclarationAccepted(updateRequest.isSubmitDeclarationAccepted());
+                    app.getApplication_info().setSubmittedAt(OraApplicationUtil.nowIst());
+                    app.getApplication_info().setStatus(SUBMITTED);
+                    app.setStatus(SUBMITTED);
+                    app.setSubmitDeclarationAccepted(true);
+                    app.setSubmittedAt(OraApplicationUtil.nowIstString());
+                });
 
         // Send Final Submission Notification
         UserProfile userProfile = userRepo
@@ -1203,7 +859,7 @@ public class OraApplicationService {
                 try {
                     OraApplicationAudit.AuditEntry entry = OraApplicationAudit.AuditEntry.builder()
                             .oraApplication(oraApplication)
-                            .deleted_at(nowIst())
+                            .deleted_at(OraApplicationUtil.nowIst())
                             .build();
                     OraApplicationAudit audit = auditRepo.findByApplicantUrnAndVacancy(
                             oraApplication.getApplicant_urn(),
@@ -1447,12 +1103,11 @@ public class OraApplicationService {
         }
 
         List<String> missingSections = oraApplicationHelper.getMissingCafSections(cafProfile);
-        // boolean isComplete = missingSections.isEmpty();
         boolean isComplete = true;
         log.info("isComplete value for URN {} = {}", applicantURN, isComplete);
         if (isComplete) {
             userProfile.setIsProfileComplete(true);
-            userProfile.setCafSubmitIon(nowIst());
+            userProfile.setCafSubmitIon(OraApplicationUtil.nowIst());
             userRepo.persistOrUpdate(userProfile);
             log.info("Profile completion updated for URN: {}. isProfileComplete=true, cafSubmitIon={}",
                     applicantURN, userProfile.getCafSubmitIon());
