@@ -1,0 +1,6 @@
+{
+  "query": "mutation deleteAccount($applicant_urn: String!) { deleteAccount(applicant_urn: $applicant_urn) }",
+  "variables": {
+    "applicant_urn": "1000000001"
+  }
+}

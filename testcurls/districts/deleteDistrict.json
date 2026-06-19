@@ -1,0 +1,3 @@
+{
+  "query": "mutation { deleteDistrict(districtLgdCode: 788) }"
+}

@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.configmap.name }}
+  labels:
+    app: form4-graphql
+data:
+  application.properties: |
+{{ .Values.applicationProperties | indent 4 }}

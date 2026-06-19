@@ -1,0 +1,3 @@
+{
+  "query": "mutation { addDistrict(stateLgdCode: 12, districtLgdCode: 788, districtName: \"abc\") { stateLgdCode districtLgdCode districtName } }"
+}

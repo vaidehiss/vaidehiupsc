@@ -1,0 +1,59 @@
+query GetCombinedMasterDistrictData {
+  getCombinedMasterDistrictData {
+    qualificationLevels { id nm }
+    degreeName { id degreeLevelId name }
+    subject { id degreeNameId degreeLevelId name }
+    examTypes { id examName nm }
+    foreignCountry { id continent nm }
+    nationalities { id nm }
+    states { id nm }
+    disabilities { id nm typeId}
+    districts { id stateId nameEn }
+    yesNoOptions { id nm }
+    binaryOptions { id nm }
+    disabilityStatuses { id nm }
+    writingExtremityOptions { id nm }
+    boardsUniversities { id nm }
+    msrEducationBoards { id stateId state boardNameShort boardName boardType secondaryExam srSecondaryExam }
+    workedAtTypes { id nm }
+    genders { id nm }
+    maritalStatuses { id nm }
+    religions { id nm }
+    scReligions { id nm }
+    minorityGroups { id nm }
+    motherTongues { id nm }
+    birthPlaces { id nm }
+    disabilityPercentageOptions { id nm }
+    parentStatuses { id nm }
+    parentOccupations { id nm }
+    communities { id nm }
+    ewsFamilyMembers { id nm }
+    issuingAuthorityDesignations { id nm }
+    qualificationStatuses { id nm }
+    streams { id nm }
+    postGraduateOptions { id nm }
+    degreeSubjects { id nm }
+    postGraduateSubjects { id nm }
+    gradingSystems { id nm }
+    gradeTypes { id nm }
+    mediumsOfInstruction { id nm }
+    courseTypes { id nm st { sid nm } }
+    employerTypes { id nm }
+    employmentTypes { id nm }
+    fieldTypes { id nm }
+    experienceLevels { id nm }
+    disabilityTypes { id dtNm sdt{sid nm} wec {wid nm} }
+    idCardTypes { id nm }
+    photoIdCardTypes { id nm }
+    serviceAllocations { id nm }
+    employmentStatusOptions { id nm }
+    attemptNumbers { id nm }
+    resultStatuses { id nm }
+    ageRelax { ageRelax categoryCode categoryName }
+    ageRelaxCategory { relaxCode relaxName }
+    division { divCode divName }
+    kindOfRegistration { registrationCode registrationName }
+    center { centerCode centerName }
+    oraCenter { centerCode centerName }
+  }
+}
