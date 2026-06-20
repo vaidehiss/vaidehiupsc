@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: form4-graphql-query
+  namespace: form4
+data:
+  application.properties: |
+    # Server Configuration
+    quarkus.http.port=8080
+    quarkus.http.host=0.0.0.0
+    quarkus.http.root-path=/ora
+
+    # CORS Configuration
+    quarkus.http.cors.enabled=true
+    quarkus.http.cors.origins=*
+    quarkus.http.cors.methods=GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD
+    quarkus.http.cors.headers=accept,authorization,content-type,x-requested-with
+    quarkus.http.cors.exposed-headers=location,info
+
+    # Logging Configuration
+    quarkus.log.level=DEBUG
+
+    # SmallRye GraphQL UI
+    quarkus.smallrye-graphql.ui.always-include=true
+
+    # Caching details
+    quarkus.cache.caffeine.metrics-enabled=true
+    quarkus.cache.type=caffeine
+    quarkus.cache.caffeine."ora-applications".initial-capacity=10
+    quarkus.cache.caffeine."ora-applications".maximum-size=25
+    quarkus.cache.caffeine."ora-applications".expire-after-write=900S
+    quarkus.cache.caffeine."ora-reports-by-vacancy".initial-capacity=10
+    quarkus.cache.caffeine."ora-reports-by-vacancy".maximum-size=50
+    quarkus.cache.caffeine."ora-reports-by-vacancy".expire-after-write=1800S
+
+    #Micrometer and Prometheus configurations
+    quarkus.micrometer.enabled=true
+    quarkus.micrometer.export.prometheus.enabled=true
+    quarkus.micrometer.export.prometheus.path=/q/metrics
+    
+    quarkus.mongodb.metrics.enabled=true
+    # quarkus.mongodb.connection-string=mongodb://admin:admin123@192.168.122.88:27017/ora_test?authSource=admin
+    # quarkus.mongodb.database=ora_test
+
+    quarkus.mongodb.oradb.connection-string=mongodb://192.168.122.88:27017
+    quarkus.mongodb.oradb.database=ora_test
+    quarkus.mongodb.oradb.credentials.username=admin
+    quarkus.mongodb.oradb.credentials.password=admin123
+    quarkus.mongodb.oradb.credentials.auth-source=admin
+
+    quarkus.mongodb.cafdb.connection-string=mongodb://192.168.122.88:27017
+    quarkus.mongodb.cafdb.database=ora_test
+    quarkus.mongodb.cafdb.credentials.username=admin
+    quarkus.mongodb.cafdb.credentials.password=admin123
+    quarkus.mongodb.cafdb.credentials.auth-source=admin
+
+    quarkus.mongodb.userdb.connection-string=mongodb://192.168.122.88:27017
+    quarkus.mongodb.userdb.database=ora_test
+    quarkus.mongodb.userdb.credentials.username=admin
+    quarkus.mongodb.userdb.credentials.password=admin123
+    quarkus.mongodb.userdb.credentials.auth-source=admin
+
+    quarkus.mongodb.vacancy2026.connection-string=mongodb://192.168.122.88:27017
+    quarkus.mongodb.vacancy2026.database=ora_test
+    quarkus.mongodb.vacancy2026.credentials.username=admin
+    quarkus.mongodb.vacancy2026.credentials.password=admin123
+    quarkus.mongodb.vacancy2026.credentials.auth-source=admin
+
+    
+    # MongoDB Configuration
+    #quarkus.mongodb.connection-string=mongodb://192.168.122.88:27017
+    #quarkus.mongodb.database=ora_test
+    #quarkus.mongodb.credentials.username=admin
+    #quarkus.mongodb.credentials.password=admin123
+    #quarkus.mongodb.credentials.auth-source=admin
+
+    quarkus.devservices.enabled=false

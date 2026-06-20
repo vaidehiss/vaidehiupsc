@@ -1,0 +1,77 @@
+replicaCount: 1
+
+image:
+  repository: 10.212.108.213:6001/ora/form4-graphql
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  port: 8080
+
+configmap:
+  name: form4-graphql-query
+
+applicationProperties: |
+  # Server Configuration
+  quarkus.http.port=8080
+  quarkus.http.host=0.0.0.0
+  quarkus.http.root-path=/ora-form4
+
+  # CORS Configuration
+  quarkus.http.cors.origins=*
+  quarkus.http.cors.methods=GET,POST,OPTIONS
+  quarkus.http.cors.headers=accept,authorization,content-type,x-requested-with
+  quarkus.http.cors.exposed-headers=location,info
+
+  # Logging Configuration
+  quarkus.log.level=DEBUG
+
+  # SmallRye GraphQL UI
+  quarkus.smallrye-graphql.ui.always-include=true
+
+  # Caching details
+  quarkus.cache.caffeine.metrics-enabled=true
+  quarkus.cache.type=caffeine
+  quarkus.cache.caffeine."ora-applications".initial-capacity=10
+  quarkus.cache.caffeine."ora-applications".maximum-size=25
+  quarkus.cache.caffeine."ora-applications".expire-after-write=900S
+  quarkus.cache.caffeine."ora-reports-by-vacancy".initial-capacity=10
+  quarkus.cache.caffeine."ora-reports-by-vacancy".maximum-size=50
+  quarkus.cache.caffeine."ora-reports-by-vacancy".expire-after-write=1800S
+
+  quarkus.mongodb.metrics.enabled=true
+
+  quarkus.mongodb.oradb.connection-string=mongodb://oraappuser:OraAppUser2026@10.212.108.240:2001/UPSCAPPLICANTS?authSource=admin
+  quarkus.mongodb.oradb.database=UPSCAPPLICANTS
+  quarkus.mongodb.oradb.credentials.username=oraappuser
+  quarkus.mongodb.oradb.credentials.password=OraAppUser2026
+  quarkus.mongodb.oradb.credentials.auth-source=admin
+
+  quarkus.mongodb.cafdb.connection-string=mongodb://oraappuser:OraAppUser2026@10.212.108.240:2001/UPSCAPPLICANTS?authSource=admin
+  quarkus.mongodb.cafdb.database=UPSCAPPLICANTS
+  quarkus.mongodb.cafdb.credentials.username=oraappuser
+  quarkus.mongodb.cafdb.credentials.password=OraAppUser2026
+  quarkus.mongodb.cafdb.credentials.auth-source=admin
+
+  quarkus.mongodb.userdb.connection-string=mongodb://oraappuser:OraAppUser2026@10.212.108.240:2001/UPSCAPPLICANTS?authSource=admin
+  quarkus.mongodb.userdb.database=UPSCAPPLICANTS
+  quarkus.mongodb.userdb.credentials.username=oraappuser
+  quarkus.mongodb.userdb.credentials.password=OraAppUser2026
+  quarkus.mongodb.userdb.credentials.auth-source=admin
+
+  quarkus.mongodb.vacancy2026.connection-string=mongodb://oraappuser:OraAppUser2026@10.212.108.240:2001/UPSCAPPLICANTS?authSource=admin
+  quarkus.mongodb.vacancy2026.database=UPSCAPPLICANTS
+  quarkus.mongodb.vacancy2026.credentials.username=oraappuser
+  quarkus.mongodb.vacancy2026.credentials.password=OraAppUser2026
+  quarkus.mongodb.vacancy2026.credentials.auth-source=admin
+
+  quarkus.devservices.enabled=false
+
+  quarkus.rest-client."in.nic.upscora.graphql.oraApplications.client.NotificationClient".url=http://smsstreammultigate-svc.ora-upsc.svc.cluster.local:8000
+
+  # NGRP S3 document service
+  quarkus.rest-client.ngrp-api.url=http://fileupload-svc.svc.cluster.local:9002/ora
+  quarkus.rest-client.ngrp-api.disable-default-mapper=true
+  ngrp.api.type=recruitment
+  ngrp.api.caf.type=user
+  ngrp.api.lang=en

@@ -1,0 +1,3 @@
+{
+  "query": "mutation { editDistrict(districtLgdCode: 788, newDistrictName: \"Keyi Panyor\") { stateLgdCode districtLgdCode districtName } }"
+}

@@ -1,0 +1,79 @@
+@startuml
+skinparam maxMessageSize 150
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+autonumber
+
+participant "GraphQL Client" as Client
+participant "Applicant" as Applicant
+participant "OraApplication\nGraphQLResource" as Resource
+participant "OraApplication\nService" as AppService
+participant "OraApplication\nRepository" as AppRepo
+participant "OraExam1Report\nService" as ReportService
+participant "Caffeine Cache\n(ora-reports-by-vacancy)" as Caffeine
+participant "MasterData\nCache" as MasterData
+participant "MongoDB" as Mongo
+
+== Report Fetch / Subscribe ==
+
+Client -> Resource: Query / Subscribe Report (vacancyId)
+Resource -> ReportService: getOrBuildReport(vacancyId)
+
+ReportService -> Caffeine: Check cache
+alt Cache Hit
+    Caffeine --> ReportService: Return Cached Report
+else Cache Miss
+    Caffeine --> ReportService: No Data
+    ReportService -> Mongo: reportRepo.findByVacancyId()
+    alt Not in DB
+        ReportService -> ReportService: rebuildReport()
+        ReportService -> AppRepo: fetch applications for vacancyId
+        AppRepo --> ReportService: List of OraApplication
+        
+        loop for each application
+            ReportService -> MasterData: lookup community & gender mapping
+            MasterData --> ReportService: normalized labels
+        end
+        
+        ReportService -> Mongo: persistOrUpdate(newReport)
+    end
+    ReportService --> Caffeine: Store Result in Cache
+end
+
+ReportService --> Resource: Return OraExam1Report
+Resource --> Client: GraphQL Response / Stream
+
+== Application Update & Cache Invalidation ==
+
+Applicant -> Resource: Mutation (create or update Application)
+Resource -> AppService: createApplication / update
+AppService -> AppRepo: persist() / update()
+AppRepo -> Mongo: save application data
+
+note right of AppRepo
+  AppRepo overrides persist/update
+  to trigger report rebuild
+end note
+
+AppRepo -> ReportService: refreshFromApplication(entity)
+ReportService -> ReportService: refreshForVacancy(vacancyId)
+
+note right of ReportService
+  Cache invalidation is triggered
+  evicting the specific vacancyId
+end note
+ReportService -> Caffeine: Evict cache for vacancyId
+
+ReportService -> ReportService: rebuildReport(vacancyId, true)
+ReportService -> AppRepo: fetch applications
+AppRepo --> ReportService: List of OraApplication
+ReportService -> MasterData: lookup mappings
+ReportService -> Mongo: persistOrUpdate(updatedReport)
+
+note right of ReportService
+  Publish to GraphQL 
+  Subscription Emitters
+end note
+ReportService -> Client: Push updated OraExam1Report stream
+
+@enduml

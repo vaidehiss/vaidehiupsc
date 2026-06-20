@@ -1,0 +1,6 @@
+apiVersion: v2
+name: form4-graphql
+description: Helm chart for Form4 GraphQL Service
+type: application
+version: 1.0.0
+appVersion: "1.0"

@@ -1,0 +1,24 @@
+# GraphQL operations for the ORA Exam 1 report.
+# Backend fields:
+# - query: oraExam1Report(vacancyId: String!)
+# - subscription: oraExam1ReportUpdates(vacancyId: String!)
+
+query GetOraExam1Report($vacancyId: String!) {
+  oraExam1Report(vacancyId: $vacancyId) {
+    id
+    vacancyId
+    vacancyNumber
+    vacancyTitle
+    lastUpdated
+  }
+}
+
+subscription SubscribeOraExam1ReportUpdates($vacancyId: String!) {
+  oraExam1ReportUpdates(vacancyId: $vacancyId) {
+    id
+    vacancyId
+    vacancyNumber
+    vacancyTitle
+    lastUpdated
+  }
+}

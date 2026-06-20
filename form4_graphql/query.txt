@@ -1,0 +1,1097 @@
+============
+getCandidateBy Id
+================
+query GetCandidate($id: String!) {
+  candidateById(id: $id) {
+    _id
+
+    address {
+      isSameAsCorrespondanceAddress
+      i_on
+      correspondanceAddress {
+        address
+        stateId
+        stateName
+        districtId
+        districtName
+        city
+        pin
+        nearestPostOffice
+      }
+      permanentAddress {
+        address
+        stateId
+        stateName
+        districtId
+        districtName
+        city
+        pin
+        nearestPostOffice
+      }
+      isFatherAddSameAsCorrespondance
+      isFatherAddSameAsPermanent
+      fatherAddress {
+        address
+        stateId
+        stateName
+        districtId
+        districtName
+        city
+        pin
+        nearestPostOffice
+      }
+      isMotherAddSameAsCorrespondance
+      isMotherAddSameAsPermanent
+      motherAddress {
+        address
+        stateId
+        districtId
+        city
+        pin
+        nearestPostOffice
+      }
+    }
+
+    disability {
+      is_
+      is_dis
+      pwbdRecuirmentStatus
+      exam_recm
+      examRecuirmentDetails
+      i_on
+      updatedOnUTC
+
+      pwbd {
+        percentage
+        certificateNo
+        certificateNo_issuedOn
+        issuingAuthorityDesignation
+        issuingAuthorityStateId
+        issuingAuthorityStateName
+        authorityAddress
+        disablityTypeId
+        disablityTypeName
+        writingLimitations
+        writingLimitationsDetails {
+          certificateType
+          certificateNo
+          issuedOn
+          designation
+          stateId
+          stateName
+          isCompensatoryTime
+          isScribeEligible
+          isScribeRequired
+          doc_cert
+        }
+        isUdid
+        udidNo
+        enrollmentNumber
+        issuedOn
+        dis_cert_doc
+
+        tD {
+          disablityTypeId
+          disablityTypeName
+          disablityTypeSubCategory {
+            sid
+            sidName
+          }
+        }
+      }
+
+      pwbdRecuirment_exam {
+        examName
+        rollNo
+        examYear
+        isUnfit
+        unfitReason
+      }
+    }
+
+    exams {
+      debaardStatus
+      debarredDetails
+      examhistorystatus
+      i_on
+
+      examHistory {
+        examName
+        examYear
+        rollNo
+        interviewStatus
+        appoointmentStatus
+        joinedStatus
+        jointDetails {
+          isContinuationService
+          isResigned
+          resingnedDetails
+        }
+      }
+    }
+
+    achievements {
+      isAchievements
+      prizes
+      sports
+      position
+      ext_corr
+      i_on
+    }
+
+    employment {
+      is_self
+      nSelfStatus
+      i_on
+
+      self {
+        natureOfEmployment
+        monthlyIncome
+        fromDate
+        toDate
+        employmentStatus
+        organizationName
+        placeOfEmployment
+        remarks
+      }
+
+      nSelf {
+        employerType
+        designation
+        monthlyIncome
+        employmentTypeId
+        employmentTypeName
+        employerName
+        fromDate
+        toDate
+        employmentStatus
+        experienceType
+        companyPlace
+        natureOfDuties
+        workedAtId
+        otherWorkName
+        otherEmpTypeName
+        intimationDate
+      }
+    }
+
+    qualifications {
+      createdOn
+      qualifications {
+        qualificationtypeId
+        otherQualificatoinName
+        qualificationLevelStatus
+        educationFromId
+        educationFromName
+        countryid
+        countryname
+        othercountrynm
+        passingStateId
+        passingName
+        certificateDate
+        rollNo
+        graduateStream
+        graduateStreamName
+        otherStreamName
+        subject
+        board
+        boardName
+        college
+        medium
+        gradeSystemId
+        gradeSystemName
+        marks
+        joinDate
+        completionDate
+        abroadDegreeStatus
+      }
+    }
+
+    userAccount {
+      community {
+        categoryId
+        categoryName
+        isOBCCreamyLayer
+        ser_post
+        commDetails {
+          ceritficateNumber
+          state_of_issue_authority
+          office_issue_authority
+          office_desigation_authority
+          issue_date
+          religon_id
+          religionName
+          state_of_issue_authority_name
+          isFatherPan
+          fatherPan
+          isMotherPan
+          motherPan
+          isFatherAadhar
+          fatherAadhar
+          isMotherAadhar
+          motherAadhar
+          casteCeritificateDoc
+        }
+        casteDetails {
+          centerListNumber
+        }
+      }
+    }
+
+    parents {
+      father {
+        name
+        status
+        statusId
+        occupation
+        occupationId
+        otherOccupation
+        annualIncome
+        nationalityId
+        nationality
+        belongingStateId
+        belongingState
+        belongingDistrictId
+        belongingDistrict
+      }
+      mother {
+        name
+        status
+        statusId
+        occupation
+        occupationId
+        otherOccupation
+        annualIncome
+        nationalityId
+        nationality
+        belongingStateId
+        belongingState
+        belongingDistrictId
+        belongingDistrict
+      }
+    }
+
+    personal_profile {
+      isMinority
+      isMinorityId
+      minorityName
+			nationalityId {
+        label
+        value
+      }
+      nationalityName
+      mothertongue {
+        label
+        value
+      }
+      mothertongueName
+      othermothertongue {
+        label
+        value
+      }
+      domocileStateId{
+        label
+        value
+      }
+      domocileStateName
+		
+      marriedStatus
+      spouseNatioinalityId
+      spouseNatioinalityName
+      birthPlaceId
+      birthPlaceName
+
+      birthPlaceDetails {
+        indiaBirthplace {
+          stateId {
+            label
+            value
+          }
+          stateName
+          districtId{
+            label
+            value
+          }
+          districtName
+          town
+          postOffice
+          pinCode
+          country
+        }
+      }
+
+      digitalContactInformation {
+        alternateEmailId
+        alternateMobileNo
+        alternateWhatsupNo
+      }
+
+      documentverificantion
+    }
+
+    uid_data {
+      is_uid
+      add_aadhar
+      u_d {
+        is_uid_consent
+        da_status
+      }
+    }
+
+    identity {
+      is_boardExam
+      stateId
+      stateName
+      conformStateId
+      conformStateName
+      countryID
+      countryName
+      foreignEducateBoardName
+      educationalBoardId
+      educationalBoardName
+      coformEducationalBoardId
+      coformEducationalBoardName
+      educationalBoardYear
+      ceb_yr
+      educationalBoardCertificateNumber
+      conformEducationalBoardCertificateNumber
+      educationalBoardCertificateIssueDate
+      conformEducationalBoardCertificateIssueDate
+      dob
+      rollNumber
+      cr_no
+      gradeSystemId
+    
+      gpaId
+      marks
+      isBoardCertificateUploaded
+      isDeclared
+      cert_issue_dt {
+        year
+        month
+        day
+      }
+    }
+
+    docs {
+      board_cert
+      id_card
+      disability_cert
+      aadhar_im
+      cast_cert
+      photo
+      sign
+      s3_aadhar_im_url
+      s3_bc_url
+      s3_cc_url
+      s3_dc_url
+      s3_pid_url
+      s3_photo_url
+      s3_s_url
+      live_photo
+      live_photo_webcam_ist
+      s3_live_photo_url
+    }
+
+    preidentity {
+      isNameSameAsBoard
+      firstName
+      middleName
+      lastName
+      boardFirstName
+      boardMiddleName
+      boardLastName
+      fatherName
+      guardianName
+      motherName
+      dateOfBirth
+      genderId
+      genderName
+      gazetteDoc
+      gazetteStateId
+      gazetteStateName
+      gazetteDistrictId
+      gazetteDistrictName
+      gazetteIssuedDate
+      gazetteNotificationNumber
+    }
+  }
+}
+
+
+
+
+variable: 
+{
+  "id": "251259213059"
+}
+
+=======================================================================
+
+
+mutation AddCandidate($input: CandidateInput!) {
+  updateCandidate(input: $input) {
+    id
+    i_on
+       employment{
+	
+      is_self
+      self {
+        natureOfEmployment
+        monthlyIncome
+        fromDate
+        toDate
+      }
+      nSelfStatus
+      nSelf{
+        employerType
+        employerType
+      }
+    }
+    uid_data {
+      is_uid
+      u_d{
+        dis
+        dis
+        adv_tkn
+      }
+      
+    }
+    identity {
+      gradeSystemId
+      stateId
+      marks
+    }
+    address {
+      i_on
+      isSameAsCorrespondanceAddress
+  
+      
+    }
+    achievements{
+      prizes
+      sports
+    }
+ 
+    qualifications{
+      createdOn
+      qualifications {
+        marks
+        subject
+      }
+       
+    }
+    disability{
+      is_
+      is_dis
+    }
+    preidentity {
+      firstName
+      lastName
+      dateOfBirth
+    }
+    docs {
+      board_cert
+      aadhar_im
+      photo
+    }
+    identity {
+      is_boardExam
+      dob
+      rollNumber
+      cert_issue_dt {
+        day
+        year
+      }
+    }
+    pid_card {
+      isPid
+      pid
+      no
+      pidDoc
+    }
+    uid_data {
+      is_uid
+    }
+    personal_profile {
+        i_on
+        isMinority
+      birthPlaceDetails {
+        indiaBirthplace{
+          districtId{
+            value
+          }
+          districtName
+          stateId{
+            value
+          }
+          stateName
+        }
+        foreingCountryBirthPlace{
+          city
+          countryName
+          
+        }
+      }
+      
+    }
+    userAccount{
+      community{
+        categoryId
+        i_on
+        isOBCCreamyLayer
+        commDetails {
+          ceritficateNumber
+        }
+      }
+    }
+    parents{
+      father {
+        name
+        status
+        belongingState
+        occupation
+        occupationId
+      }
+      mother {
+        name
+        nationality
+        occupation
+        occupationId
+      }
+    }
+  }
+}
+
+
+
+
+{
+  "input": {
+    "id": 327465973236,
+      "disability": {
+        "is_": 1,
+        "is_dis": true,
+        "pwd": null,
+        "pwbd": {
+            "percentage": 90,
+            "certificateNo": "3924083290840",
+            "certificateNo_issuedOn": "2026-03-01T18:30:00.000Z",
+            "issuingAuthorityDesignation": "officer",
+            "issuingAuthorityStateId": 35,
+            "authorityAddress": "fdaskljfl",
+            "disablityTypeId": 1,
+            "tD": [
+                {
+                    "disablityTypeId": 1,
+                    "disablityTypeSubCategory": [
+                        {
+                            "sid": 1
+                        }
+                    ]
+                }
+            ],
+            "writingLimitations": true,
+            "writingLimitationsDetails": {
+                "certificateType": "appendix7",
+                "certificateNo": "3948230984902",
+                "issuedOn": "2026-02-01T18:30:00.000Z",
+                "designation": "324893289",
+                "stateId": 35,
+                "isCompensatoryTime": true,
+                "isScribeEligible": true,
+                "isScribeRequired": false,
+                "doc_cert": true
+            },
+            "isUdid": true,
+            "udidNo": "32492083",
+            "enrollmentNumber": null,
+            "issuedOn": null,
+            "dis_cert_doc": true
+        },
+        "pwbdRecuirmentStatus": true,
+        "pwbdRecuirment_exam": [
+            {
+                "examName": null,
+                "rollNo": null,
+                "examYear": 0,
+                "isUnfit": false,
+                "unfitReason": null
+            }
+        ],
+        "exam_recm": null,
+        "examRecuirmentDetails": null,
+        "i_on": "2026-02-02T11:45:22.239Z"
+        ,
+        "updatedOnUTC": "2026-02-02T11:45:22.239Z"
+        
+    }             ,
+     "exams": {
+    "debaardStatus": true,
+    "debarredDetails": "Debarred",
+    "examhistorystatus": true,
+    "examHistory": [
+      {
+        "examName": 16,
+        "examYear": 1975,
+        "rollNo": "1234567",
+        "interviewStatus": true,
+        "appoointmentStatus": true,
+        "joinedStatus": false,
+        "jointDetails": {
+          "isContinuationService": false,
+          "isResigned": false,
+          "resingnedDetails": null
+        }
+      },
+      {
+        "examName": 1,
+        "examYear": 1975,
+        "rollNo": "1234567",
+        "interviewStatus": true,
+        "appoointmentStatus": true,
+        "joinedStatus": true,
+        "jointDetails": {
+          "isContinuationService": false,
+          "isResigned": false,
+          "resingnedDetails": "02/02/2010"
+        }
+      }
+    ],
+    "i_on": "2025-05-21T09:27:28.141Z"
+  },
+      "achievements": {
+    "isAchievements": true,
+    "prizes": "Prize",
+    "sports": "Sports",
+    "position": "Position",
+    "ext_corr": "Extra-curricular activities",
+    "i_on": "2025-05-17T11:06:30.628Z"
+    
+  },
+  "isAchievements": true,
+        "employment": {
+        "is_self": true,
+        "self": [
+            {
+                "natureOfEmployment": "fjadksl",
+                "monthlyIncome": 90384,
+                "fromDate": "01/02/2026",
+                "toDate": null,
+                "employmentStatus": 1,
+                "organizationName": "fjsdak",
+                "placeOfEmployment": "fjkdlsa",
+                "remarks": "fasdklfj"
+            }
+        ],
+        "nSelfStatus": true,
+        "nSelf": [
+            {
+                "employerType": 1,
+                "designation": "fdaslkj",
+                "monthlyIncome": null,
+                "employmentTypeId": 1,
+                "employmentTypeName": "Permanent",
+                "employerName": "fdsajkl",
+                "fromDate": "02/02/2026",
+                "employmentStatus": 1,
+                "toDate": null,
+                "experienceType": 1,
+                "companyPlace": "fsadkl",
+                "natureOfDuties": "fasjk",
+                "workedAtId": 1,
+                "otherWorkName": "",
+                "otherEmpTypeName": "",
+                "intimationDate": ""
+            }
+        ],
+        "i_on": "2026-02-02T07:23:01.942Z"
+        },
+    "qualifications": {
+        "qualifications": [
+            {
+                "qualificationtypeId": 1,
+                "otherQualificatoinName": null,
+                "qualificationLevelStatus": 1,
+                "educationFromId": 1,
+                "educationFromName": "India",
+                "countryid": null,
+                "countryname": null,
+                "othercountrynm": null,
+                "passingStateId": 35,
+                "passingName": "Andaman and Nicobar Islands",
+                "certificateDate": "02/01/2026",
+                "rollNo": "202394832",
+                "graduateStream": null,
+                "graduateStreamName": null,
+                "otherStreamName": null,
+                "subject": "english",
+                "board": 1,
+                "boardName": "CBSE",
+                "college": "tmu",
+                "medium": 1,
+                "gradeSystemId": 1,
+                "gradeSystemName": "CGPA/ Scale 10",
+                "marks": 8,
+                "joinDate": null,
+                "completionDate": null,
+                "abroadDegreeStatus": false
+            },
+            {
+                "qualificationtypeId": 4,
+                "otherQualificatoinName": null,
+                "qualificationLevelStatus": 1,
+                "educationFromId": 1,
+                "educationFromName": "India",
+                "countryid": null,
+                "countryname": null,
+                "othercountrynm": null,
+                "passingStateId": 9,
+                "passingName": "Uttar Pradesh",
+                "certificateDate": "02/01/2026",
+                "rollNo": "234902482",
+                "graduateStream": null,
+                "graduateStreamName": null,
+                "otherStreamName": null,
+                "subject": "computer science",
+                "board": 1,
+                "boardName": "Private University",
+                "college": "tmu",
+                "medium": 23,
+                "gradeSystemId": 3,
+                "gradeSystemName": "Percentage(%) Marks",
+                "marks": 80,
+                "joinDate": null,
+                "completionDate": null,
+                "abroadDegreeStatus": false
+            }
+        ],
+        "createdOn":  "2026-02-02T07:02:51.610Z"  
+    },
+     "userAccount": {
+    "community": {
+      "categoryId": 3,
+      "isOBCCreamyLayer": true,
+      "commDetails": {
+        "ceritficateNumber": "",
+        "state_of_issue_authority": "",
+        "office_issue_authority": "",
+        "office_desigation_authority": "",
+        "issue_date": "",
+        "religon_id": "",
+        "isFatherPan": false,
+        "fatherPan": "",
+        "isMotherPan": false,
+        "motherPan": "",
+        "isFatherAadhar": false,
+        "fatherAadhar": "",
+        "isMotherAadhar": false,
+        "motherAadhar": "",
+        "casteCeritificateDoc": true
+      },
+      "casteDetails": {
+        "centerListNumber": ""
+      },
+      "ser_post": "police"
+    }
+    },
+
+    "parents": {
+    "father": {
+      "name": "sanjeev",
+      "status": "Alive",
+      "statusId": "1",
+      "occupation": "Service (Private Sector)",
+      "occupationId": "2",
+      "otherOccupation": null,
+      "annualIncome": 36000,
+      "nationalityId": "1",
+      "nationality": "Citizen of India",
+      "belongingStateId": "2",
+      "belongingState": "2",
+      "belongingDistrictId": "237",
+      "belongingDistrict": "237"
+    },
+    "mother": {
+      "name": "Suman",
+      "status": "Alive",
+      "statusId": "1",
+      "occupation": "Homemaker",
+      "occupationId": "6",
+      "otherOccupation": null,
+      "annualIncome": 20000,
+      "nationalityId": "1",
+      "nationality": "Citizen of India",
+      "belongingStateId": "2",
+      "belongingState": "2",
+      "belongingDistrictId": "237",
+      "belongingDistrict": "237"
+    }
+    },
+
+      "identityProfileStatus": true,
+  "board_validation": "2013_7_1_25/06/1992_123456789",
+    "personal_profile": {
+        "isMinority": false,
+        "isMinorityId": 2,
+        "minorityName":  "",
+        "nationalityId": {
+            "label": "Subject of Nepal",
+            "value": "2"
+        },
+        "nationalityName": "Subject of Nepal",
+        "mothertongue": {
+            "label": "Bodo",
+            "value": "3"
+        },
+        "mothertongueName": "Bodo",
+        "othermothertongue": null,
+        "domocileStateId": {
+            "label": "Punjab",
+            "value": "3"
+        },
+        "domocileStateName": "Punjab",
+        "isMarriedId": 2,
+        "marriedStatus": "Married",
+        "spouseNatioinalityId": 1,
+        "spouseNatioinalityName": "Indian",
+        "birthPlaceId": 1,
+        "birthPlaceName": "INDIA",
+        "birthPlaceDetails": {
+            "indiaBirthplace": {
+                "stateId": {
+                    "label": "Jammu & Kashmir",
+                    "value": "1"
+                },
+                "stateName": "Jammu & Kashmir",
+                "districtId": {
+                    "label": "Kishtwar",
+                    "value": "247"
+                },
+                "districtName": "Kishtwar",
+                "town": "Bulandshahr",
+                "postOffice": "fxgjx",
+                "pinCode": 203205,
+                "country": "India"
+            },
+            "foreingCountryBirthPlace": null
+        },
+        "digitalContactInformation": {
+            "alternateEmailId": "panwargarvit31@gmail.com",
+            "alternateMobileNo": "8868949140",
+            "alternateWhatsupNo": "7417864523"
+        },
+        "documentverificantion": true
+    },
+
+     "uid_data": {
+    "is_uid": true,
+    "u_d": {
+      "is_uid_consent": 1,
+      "consent": "Os6nI03rUvQpfaNk+1w+1fbQUDQ1J0pblr6eoU3afbr9hIXofOGEmdSZURZjZYwa54rdKFQTJqfVZm1bAftL3V27cWJ3jajmGZ/zNbexAeHzBYsCqylqTMYA6L6AaE/nBerB3dmPuFOrTc59uEOkuvA9e8qdAl0CHYOk1I4MJ6rlgKaMw0X9gMF4vnAHhBS7+eHL7lSQM3t7e2JrFY2Gvo0+SWzV40lssSu27Kz3gG0oJ2d76IB3NaKkS4cNkTHeLY9WGsR3GpwtC3cgGg5dZxTYeTfSu5hhLDn+ATeN6eCZ/lSqUUGnI8ICEy4KNbCwb1lw9M7swFJwSPjOobyd8A==",
+      "nm": "caoa7vhiW5VOa4Zvu57vIaRmuf5PaTU0RziUaJE1E8ghuQ7iABHKyXgMFZOWpBHouaFjaIIsDyj4xPSSXMSeMI/67vtC9JqEMRbkTcsaovq0WEXzOQcUPQWyKgeuoPz1IlYzPDOU8v5Gz1iFYJOh4lbzw1XO0rOoaRPEBZaUPf5kOxpi9yjQ0ODQpDg5XXoh/5OPQ58pM25lmfW7p+ImzsZ1j0Zd/epXwx5PzIgsvEzM80iOC1SYkO5LOmSC2qAmNwpguysTtlFXioEvpm1m5XEMF4BEAnljgoNpbVJmyqlUXE5c256E9/nUoYNplVA7Lrdybrh1ZvDTUiRMH2ivYw==",
+      "dob": "QP12v1u+9N2leSS0ZJHqJO045Kp3nWNob57i9L4EU4qfcucKxheSfhw+l0POwvo6d1qR9gHCpPzHk2Exo9KYqzHdVITKk2E93OcSnU90MPe0dq5/cgqGJfju10dKlVkkfLozqc3uYenn7c1BLCM+4cSG+2BRd2KIb8O8y0N1TszWYbZnmOAF+DT2aLLrM9bwVPquBtU8j0HXcKDvtg5YxJ163lXkwrdcS8fZQU3Ez1Ppsbn/fOC9AxOEmyHZesAIdBlpqInvTbydf86HomPl6aum29J+iwR7s/vIz3mdsCmmHBhb78MwJIHSdO+L7BX7s0zSK9Kdswh3yhnGm73qFQ==",
+      "gn_nm": "M6/1VRFPWkw2oYtq25rYBvj9biloWpaIAwUIFgzDcIYSL4AbJLfgcqdVAac8Qo6TDaj10qKs+gOEIx7O6VUOBftL1UT45wo6AELB74Aiiid/P9jfvJeMP4DV3MKWDdC9FosesL0dtkrcQB71rrLYd5tB7zZrJ0pHlBGc7oh5b0US9HM8oKiCH8UgOii5sZXoH4FCkqH/3M4ofWYSP9Rbs4RntBdx+Mw6K0KCvN/rc6760pRbYvJKXbpQdxJs9TGVuIqiat/bGStT/oc/LEghFNAGS6u+r9GIrupvLnKeWUhJG6MRNgyS6esrBjaqEVm7zSXkIOGF3TLaWer4mQIYZQ==",
+      "lmrk": "c+qnzm+FehsnntCuQIQUquz3sg0azmhfLnsWiWp8sURHyIp7BkNuvkWqHXvQ2xj70vQJs0FvpU1z6i6meFoa/Poy+STmtgMyZwsq2fCtNEhsHt4RPPECEo/qOeABZQK6hoOkLtIVis62kGVS60xKDJheE0LFVuNNwY/VxjP6UpIjOGOzlNetZqwm0JbFA9TLhUNTqO6wvcF+uKgizHVLFO1/+G/gjYjrCrM4UnxbdQ23h2ggZUbBMRWxaZmsZS089w2s5zYHJK/YG4IijUWP+EjAH1f8iLT1dgLnGXDrPiMIQ6hOk3y/RTJKR3dGDh9Fa3BBP98vsI+k1xmz1nXqwA==",
+      "loc": "HPrWr2tpLs86+vK5di8+lGXG3kZ8PZbORCgWWi5WqAlrPmU9tawJxrMyEM3US+/vJ6MC5wz39EaTL9uBvVugEsnC0cgQO8loNMOV/XcrP8Tjx2eUpDqdcwM0kCIc4ylJGH5hrYBr+HCmoIR1UJmrnPcx2ABYtDZsgDHw3iQu5vziSbTvkfJPLSq8LfmyLI79clVedGvEl1szL7TdS5gHYMUwp243rUbGky5lyBaGugtimhlQ/lFKlvwpx+Mki0PRAp/L5Bo07hZ6BPVS8i1R9W2w7SZaWlLl51y4W+w35bHbNQ3zcafcqZS60X8wCWSJU0N1KIrX19N3LW48xDGTZw==",
+      "st": "PuVoWTpWUfS15/wLmAwLMcR0tNBS2utGrIQb0I3RuGCKMCORegLqw7w+wbGWEIyNCif4IDsy/+PpO2zKYhDx1IXDZWKoqIXoPOIIlSQDpphZclriETMxDUADDKTQ3fOKqmiz9RWFMeXqxUDHOWDjAHQgbcyWmh3oMEz7/XV8X7iHoeDkSoAdnHacO4dsaOtbs2U89v9rtWC/rG2sx5I/7C/UDPyIQj4EZ87q09WVuNRZ+cYLsIZ7YqRp7vr5LOe+amvyOmK/JaTteWiwMYZSQV/9iQKtKfqY0h7pmO5/SIL71/Qaj8COURHuQj7BMBGtiD559wt/B9Aj79IteG6JtA==",
+      "pin": "OD+CvJWiszbmGwRkWp9qfRc/QuI6Iwlcnq+NkUoVgflFuluHTDR5Rk+shwsX3LQpP466b19kYlkVTWul6mLaTHP3DRA3PPI0t/qHjwSBAQGdze6OzoMGtrZWwBAuER0W0AH7kIiphmzNGG0dszQoUoP9AFHDENVEBn/GehgPtqdopg2xVCzt7wwQ3AUVLhcth9Wxxe9wDnthtkaXXLPDx/6mwvusSomfjaeWC+aO+yypFscHYWuhM4+GRjczJ1rw50BR7UEFEBoUs9vvZPQFhiV8DUmHooGn912GyhAmvzvmLnGR1YkOiGxXjwvPwhy51GQKuMZXWVstIKZjCM08mQ==",
+      "dis": "NfheV8V3FUXKcTOhmupvSAbj8LnmiJJyNlFgKWVbD+mp36NvTAG1twxW9840VbVVa6JrS0wBszrsW22ffMkiUrCsiIHYg8Jre0qP1zl6OvFsoJtBlgtLbOICxzbqMAYNk83kuO+GgIxu07PvYwxFv0QtcMRYAndfLjFW4cltAFSmz9eMoyqNj2h24HGUNFFK2dBlTNl34nEXkPUwskowM45lOAgNnkGUvLfnVlXwcvTYFhIXMnVrVdtxvrXJy/KBj96EM7Vu2oXE4FRRuZ+90M9tVMZgp/dnWzgKepC1wEq996yYkbjiY76mGKZVo12cIBNDO6Dxwnqhzn8pNBR05g==",
+      "l4": "fmt8fOGqH+YGyaXlsYYG/eUnuu/XmvAc6X7gMzH51g/dfQZ6vawuv+7qDeXd/U8PAPodgr1VYD8rQNJon5A5pc+p5lg2TAJr2CZn2jDLiHG+CiEsnMDeXVmQI8Z9FgDSUGO+5GU1H/lKWU34T+fZGyWvU17X4L4X3KaOR10SjsnKUCTifRp0E+bJPUNhiqcS5UKtC3vsQeZPFJqlnIVzfmp7DaiEnn13JJHYk9K1zdHehbUdtYpnp/33RldF9mx/PMvKKyIHx60bLlMYEJvuxeCdM8yjsVzDZS0TSA4Dd76QnR5P06cpRyE8SD3vdoDuJnHUFarEN4o0JS9JIpwgAA==",
+      "contry": "UtRZzo276rKDOQmHX0JAjakozrm3JzPx9dPugd7hbsS4gzeH4z1F7SIcdLNjXJXjpCFpD1HvgIvY9viv+HCj2nzoL5DBfdcCgt9VgANiSgp3yA5Ykix6gEGkq9CuzIUUfpTYaRe4Fv69yF6ZFWU21vECSkfHDcNOSDzXksI7NJSQPJh3ayBnIyWSFu57Yfefy26s4yajAhcJSikH5dZPF5bPOQtcL4Y3owPL2pDXFf/i/ptmTjqSlSAjVbyrmOArDOHm7Ra+4id1q6HAYdD5JSHOte5dQbDwMUlvHdm3E+keDiC0Xbf5DkLqDDBNfwqoS5qiffpjpDoVg+2kwilhhA==",
+      "adv_tkn": "ETvaUCsilowsYJnNuyE+Ph0GVx+kLgnqlvMoxjTWbCTkCNr/T62CETmDUUO4H7iNiwk/YmMeF02FbUp2WhZs4El3WNJvbaYf+z/eQ7dAAG1kSMvTeKqCkch9HXmjfZv+DuTyvF6mVTITJw/AXAu8Jcxk7WK1Ci0ObrEReysWSwHNuJr/PzAHNxtUMOlW7I63gusHFjAxtfKtCarm0l/6nNw4Udb7C67dVR8pl+S9ayWToaOHsaB2zf3XA/KfCHeFbDGwQhkE0UtBPCd5+29icD8njNxuV2rcy2x6MrJjUs8x8LqMBYnAzt5Bm78DONPjhrxn4+QK2w/hyMHb4V20Dg==",
+      "adv_txn": "evjbUh+B5py6P6P8Ia0esvz6Fc1gdzlxh/VStlaEPwpCEpFO51cjAAG+3a3LAHwXmk10G1eYE0fHTITjvFTKthSqeFEcHx8U5X0b1xUjypCNubIeRYCOnttVY0bsU7lix5zja9GIzfXcFH3LG2u1/TFff9k47yoW97VgtcGWBIvWUOUPriEoU3wG3RU4wUZv5v2vyyK582heqD0WSUSsg7n8fxJWIkNWyrAdcocBQLtjDyLflWbPFcaQopFzDiur/CY9Vnu2T37KUJwCiyoejwDohTsAjOfEa54Q7wWxK0xutOWR/U/weL8BBqIKyZunGl+jGxscaqMKSibMF72GHg==",
+      "txn": "Lr052bxnk0kzRriqiZyr+WqOL+2DTIFieDtLLfdxYIRyFZk+w2Ccupry059cEeNTEwlEginb6gHqM3Wvzv3oySjx9L6jY0lzaiSlweh2U5VJFxfDz4UeqweSjjwtRcomIAY7G+Dui06z6qe+GpLiML23By9eUn8eyoUfBv7whRWaX6ExFQIXY9Er+/AmmQAU3IjW/6k0QlAHE7gBhQcE2TjfZOrQsELVa/+o6U4/2DPJ5SlYjqoLDpDYeAREZTQYVJpNmlyz1ZlM1H3m3rvvBYgTt+gDLK1A8WQROc9PZ+p1N6kCKAvUwjcesq4DU6ycVmVhKb44KN4San4S5iVAiA==",
+      "tkn": "01112221qzuNPqCnT8crhXulC9+64zaXDS2pNPOcdKvZkesH9QV5Pg6bZUwWBusZpbDuflyv",
+      "da_status": "NG"
+    },
+    "add_aadhar": true
+  },
+    "identity": {
+    "is_boardExam": "India",
+    "stateId": 7,
+    "conformStateId": 7,
+    "countryID": null,
+    "countryName": null,
+    "otherCountryName": null,
+    "foreignEducateBoardName": null,
+    "educationalBoardId": 1,
+    "coformEducationalBoardId": 1,
+    "educationalBoardYear": 2013,
+    "ceb_yr": 2013,
+    "educationalBoardCertificateNumber": "123456789",
+    "conformEducationalBoardCertificateNumber": "123456789",
+    "educationalBoardCertificateIssueDate": "02/02/2013",
+    "conformEducationalBoardCertificateIssueDate": "02/02/2013",
+    "dob": "25/06/1992",
+    "rollNumber": "rollnumber",
+    "cr_no": "rollnumber",
+    "gradeSystemId": 1,
+    "gpaId": null,
+    "marks": 8,
+    "isBoardCertificateUploaded": true,
+    "isDeclared": true,
+    "cert_issue_dt": {
+      "year": 2013,
+      "month": 2,
+      "day": 2
+    }
+  },
+      "is_preIdentity": true,
+  "docs": {
+    "board_cert": true,
+    "id_card": true,
+    "disability_cert": true,
+    "aadhar_im": true,
+    "cast_cert": true,
+    "photo": true,
+    "sign": true,
+    "s3_aadhar_im_url": "s3://ngrp-candidates/candidates/251423298477/aadhar/aadhar_image",
+    "s3_bc_url": "s3://ngrp-candidates/candidates/251423298477/board_certificate/board_certificate.pdf",
+    "s3_cc_url": "s3://ngrp-candidates/candidates/251423298477/caste_certificate/caste_certificate.pdf",
+    "s3_dc_url": "s3://ngrp-candidates/candidates/251423298477/disability_certificate/disability_certificate.pdf",
+    "s3_pid_url": "s3://ngrp-candidates/candidates/251423298477/id_card/id_card.jpg",
+    "s3_photo_url": "s3://ngrp-candidates/candidates/251423298477/photo/photo.jpg",
+    "s3_s_url": "s3://ngrp-candidates/candidates/251423298477/signature/signature.jpg",
+    "live_photo": true,
+    "live_photo_webcam_ist": "2026-01-06 08:49:03",
+    "s3_live_photo_url": "s3://ngrp-candidates/251423298477/live_photo/live_photo.jpg"
+  },
+    "preidentity": {
+    "isNameSameAsBoard": true,
+    "firstName": "SIDDHARTH",
+    "cf_nm": "SIDDHARTH",
+    "middleName": null,
+    "cm_nm": null,
+    "lastName": "SINGH",
+    "cl_nm": "SINGH",
+    "boardFirstName": "SIDDHARTH",
+    "cb_f_nm": "SIDDHARTH",
+    "boardMiddleName": null,
+    "cb_m_nm": null,
+    "boardLastName": "SINGH",
+    "cb_l_nm": "SINGH",
+    "fatherName": "SATISH KUMAR",
+    "cfath_nm": "SATISH KUMAR",
+    "guardianName": "AJAY SINGH",
+    "cguar_nm": "AJAY SINGH",
+    "motherName": "PUSHPA RANI",
+    "cmoth_nm": "PUSHPA RANI",
+    "dateOfBirth": "10/01/2000",
+    "cdob": "10/01/2000",
+    "genderId": 1,
+    "cg_id": 1,
+    "gazetteDoc": false,
+    "gazetteStateId": null,
+    "gazetteDistrictId": null,
+    "gazetteDistrictName": null,
+    "gazetteIssuedDate": null,
+    "gazetteNotificationNumber": null
+
+  }
+ 
+  }
+}
+
+================
+User Profile Queries
+================
+
+query UserDetailsByUrn($applicantURN: String!) {
+  UserDetailsByUrn(applicantURN: $applicantURN) {
+    email
+    mobileNum
+    isProfileComplete
+    cafSubmitIon
+  }
+}
+
+Variables:
+{
+  "applicantURN": "251423298477"
+}
+
+query UpdateUserProfileCompletionStatus($applicantURN: String!) {
+  updateUserProfileCompletionStatus(applicantURN: $applicantURN) {
+    email
+    mobileNum
+    isProfileComplete
+    cafSubmitIon
+  }
+}
+
+Variables:
+{
+  "applicantURN": "251423298477"
+}
+
+# Behavior:
+# 1) If all CAF sections are present -> isProfileComplete=true and cafSubmitIon is updated.
+# 2) If any CAF section is missing -> DB is not updated and response returns isProfileComplete=false.
+
+============
+Profile Lock
+============
+query GetProfileLocked($applicantInfo: Ora_ApplicantInput!) {
+  getProfileLocked(applicantInfo: $applicantInfo)
+}
+
+Variables (GetProfileLocked):
+{
+  "applicantInfo": {
+    "applicant_info": {
+      "applicant_urn": "1234567890",
+      "vacancyId": "VAC-001",
+      "recruitmentYear": "2025",
+      "recruitmentCode": "RC-01",
+      "post_name": "POST-XYZ",
+      "stepKey": "STEP-1"
+    }
+  }
+}
+
+
+
+mutation UpdateProfileLock($applicantInfo: ProfileLockInput!) {
+  updateApplicantProfileLock(applicantInfo: $applicantInfo) {
+    application_info {
+      profileLocked
+    }
+  }
+}
+
+
+Variables (UpdateProfileLock):
+{
+  "applicantInfo": {
+    "applicant_info": {
+      "applicant_urn": "1234567890",
+      "vacancyId": "VAC-001",
+      "recruitmentYear": "2025",
+      "recruitmentCode": "RC-01",
+      "post_name": "POST-XYZ",
+      "stepKey": "STEP-1"
+    }
+  }
+}
+
+mutation UnlockProfile($applicantInfo: ProfileLockInput!) {
+  unlockProfile(applicantInfo: $applicantInfo) {
+    application_info {
+      profileLocked
+    }
+  }
+}
+
+Variables (UnlockProfile):
+{
+  "applicantInfo": {
+    "applicant_info": {
+      "applicant_urn": "1234567890",
+      "vacancyId": "VAC-001",
+      "recruitmentYear": "2025",
+      "recruitmentCode": "RC-01",
+      "post_name": "POST-XYZ",
+      "stepKey": "STEP-1"    }
+  }
+}
