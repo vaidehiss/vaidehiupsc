@@ -603,7 +603,7 @@ public class OraApplicationGraphQLResource {
         @Counted(value = "submitApplication_count", description = "Total number of successfully submitted applications")
         @Mutation("submitApplication")
         public OraApplication submitApplication(
-                        @NonNull @Name("applicantInfo") SubmitApplication applicantInfo) {
+                        @NonNull @Name("applicantInfo") SubmitApplication applicantInfo) throws GraphQLException {
                 log.info("submitApplication | request={}", safeJson(applicantInfo));
                 OraApplication response = oraService.submitApplication(applicantInfo);
                 log.info("submitApplication | response={}", safeJson(response));

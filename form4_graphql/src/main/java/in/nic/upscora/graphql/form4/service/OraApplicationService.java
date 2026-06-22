@@ -1,15 +1,19 @@
 package in.nic.upscora.graphql.form4.service;
 
 import java.util.ArrayList;
+import java.beans.PropertyDescriptor;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
 
 import in.nic.upscora.graphql.form4.cache.MasterDataCache;
 import in.nic.upscora.graphql.form4.cache.MasterDataConstants;
 import in.nic.upscora.graphql.form4.exceptions.ApplicationNotFoundException;
 import in.nic.upscora.graphql.form4.mongo.entity.application.OraApplication;
 import in.nic.upscora.graphql.form4.mongo.entity.application.OraApplicationAudit;
+import in.nic.upscora.graphql.form4.mongo.entity.application.ExamDocs;
+import in.nic.upscora.graphql.form4.mongo.entity.application.ExamDocument;
 import in.nic.upscora.graphql.form4.mongo.entity.application.PaymentDetails;
 import in.nic.upscora.graphql.form4.mongo.entity.caf.CandidateProfile;
 import in.nic.upscora.graphql.form4.mongo.entity.caf.PreIdentity;
@@ -747,9 +751,14 @@ public class OraApplicationService {
     }
 
     @CacheInvalidateAll(cacheName = "ora-applications")
-    public OraApplication submitApplication(SubmitApplication updateRequest) {
+    public OraApplication submitApplication(SubmitApplication updateRequest) throws GraphQLException {
 
         log.info("submitApplication | request={}", oraApplicationHelper.safeJson(updateRequest));
+
+        OraApplication currentApplication = getApplicationByUrnAndVacany(
+                updateRequest.getApplicant_info().getApplicant_urn(),
+                updateRequest.getApplicant_info().getVacancyId());
+        validateRequiredDocumentsForSubmission(currentApplication);
 
         OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
@@ -783,6 +792,155 @@ public class OraApplicationService {
                 oraApplicationHelper.safeJson(oraApplication));
         return oraApplication;
 
+    }
+
+    private void validateRequiredDocumentsForSubmission(OraApplication oraApplication) throws GraphQLException {
+        List<String> missingDocuments = new ArrayList<>();
+
+        addMissingCafDocs(missingDocuments, oraApplication.getExamDocs());
+
+        addMissingScalarDocumentIfApplicable(missingDocuments, "supportDocument", oraApplication.getSupportDocument(),
+                oraApplication.getClaimAgeRelaxation());
+        addMissingScalarDocumentIfApplicable(missingDocuments, "mergedDocument", oraApplication.getMergedDocument(),
+                oraApplication.getOtherDocsApplicable());
+
+        addMissingNestedDocuments(missingDocuments, "essential_experience", oraApplication.getEssential_experience(),
+                true, "experienceProof");
+        addMissingNestedDocuments(missingDocuments, "desirable_experience", oraApplication.getDesirable_experience(),
+                isYes(oraApplication.getDesirableExperienceApplicable()), "experienceProof");
+        addMissingNestedDocuments(missingDocuments, "additional_experience", oraApplication.getAdditional_experience(),
+                isYes(oraApplication.getAdditionalExperienceApplicable()), "experienceProof");
+
+        addMissingNestedDocuments(missingDocuments, "essential_qualification",
+                oraApplication.getEssential_qualification(), true, "degreeCertificate", "marksheet");
+        addMissingNestedDocuments(missingDocuments, "desirable_qualification",
+                oraApplication.getDesirable_qualification(), isYes(oraApplication.getDesirableQualificationApplicable()),
+                "degreeCertificate", "marksheet");
+        addMissingNestedDocuments(missingDocuments, "additional_qualification",
+                oraApplication.getAdditional_qualification(), isYes(oraApplication.getAdditionalQualificationApplicable()),
+                "degreeCertificate", "marksheet");
+
+        addMissingNestedDocuments(missingDocuments, "diplomas", oraApplication.getDiplomas(),
+                isYes(oraApplication.getDiplomaApplicable()), "diplomaDocument");
+        addMissingNestedDocuments(missingDocuments, "netQualifications", oraApplication.getNetQualifications(),
+                hasEntries(oraApplication.getNetQualifications()), "netCertificate");
+        addMissingNestedDocuments(missingDocuments, "gateQualifications", oraApplication.getGateQualifications(),
+                hasEntries(oraApplication.getGateQualifications()), "gateScoreCard");
+        addMissingNestedDocuments(missingDocuments, "certificates", oraApplication.getCertificates(),
+                hasEntries(oraApplication.getCertificates()), "certificateDocument");
+        addMissingNestedDocuments(missingDocuments, "internships", oraApplication.getInternships(),
+                hasEntries(oraApplication.getInternships()), "internshipDocument");
+        addMissingNestedDocuments(missingDocuments, "registrations", oraApplication.getRegistrations(),
+                hasEntries(oraApplication.getRegistrations()), "regCertificate");
+        addMissingNestedDocuments(missingDocuments, "answers", oraApplication.getAnswers(),
+                hasEntries(oraApplication.getAnswers()), "document");
+
+        if (!missingDocuments.isEmpty()) {
+            String message = "Cannot submit application. Missing required documents: "
+                    + String.join(", ", missingDocuments);
+            log.warn("submitApplication | validationFailed | applicantUrn={} | vacancyId={} | missingDocuments={}",
+                    oraApplication.getApplicant_urn(),
+                    oraApplication.getVacancyId(),
+                    missingDocuments);
+            throw new GraphQLException(message);
+        }
+    }
+
+    private void addMissingCafDocs(List<String> missingDocuments, ExamDocs examDocs) {
+        Map<String, String> requiredCafDocs = new LinkedHashMap<>();
+        requiredCafDocs.put("name_change", "name_change.pdf");
+        requiredCafDocs.put("id_card", "id_card.jpg");
+        requiredCafDocs.put("aadhar", "aadhar_image");
+        requiredCafDocs.put("board_certificate", "board_certificate.pdf");
+        requiredCafDocs.put("caste_certificate", "caste_certificate.pdf");
+        requiredCafDocs.put("disability_certificate", "disability_certificate.pdf");
+        requiredCafDocs.put("pw_recommendation", "pw_recommendation.pdf");
+        requiredCafDocs.put("photo", "photo.jpg");
+        requiredCafDocs.put("live_photo", "live_photo.jpg");
+        requiredCafDocs.put("signature", "signature.jpg");
+
+        List<ExamDocument> cafDocs = examDocs != null ? examDocs.getCafDocs() : null;
+        if (cafDocs == null || cafDocs.isEmpty()) {
+            requiredCafDocs.forEach((key, fileName) -> missingDocuments.add("examDocs.cafDocs." + key));
+            return;
+        }
+
+        Map<String, ExamDocument> cafDocsByType = new HashMap<>();
+        for (ExamDocument cafDoc : cafDocs) {
+            if (cafDoc != null && !isBlank(cafDoc.getType())) {
+                cafDocsByType.put(cafDoc.getType(), cafDoc);
+            }
+        }
+
+        requiredCafDocs.forEach((key, expectedFileName) -> {
+            ExamDocument cafDoc = cafDocsByType.get(key);
+            if (cafDoc == null) {
+                missingDocuments.add("examDocs.cafDocs." + key);
+                return;
+            }
+            if (isBlank(cafDoc.getFileName()) || !expectedFileName.equalsIgnoreCase(cafDoc.getFileName().trim())) {
+                missingDocuments.add("examDocs.cafDocs." + key + ".fileName");
+            }
+            if (isBlank(cafDoc.getFilePath())) {
+                missingDocuments.add("examDocs.cafDocs." + key + ".filePath");
+            }
+        });
+    }
+
+    private void addMissingScalarDocumentIfApplicable(List<String> missingDocuments, String path, String value,
+            String applicableValue) {
+        if (isYes(applicableValue) && isBlank(value)) {
+            missingDocuments.add(path);
+        }
+    }
+
+    private void addMissingNestedDocuments(List<String> missingDocuments, String path, List<?> entries,
+            boolean shouldValidate, String... requiredFields) {
+        if (!shouldValidate) {
+            return;
+        }
+
+        if (entries == null || entries.isEmpty()) {
+            missingDocuments.add(path);
+            return;
+        }
+
+        for (int i = 0; i < entries.size(); i++) {
+            Object entry = entries.get(i);
+            if (entry == null) {
+                missingDocuments.add(path + "[" + i + "]");
+                continue;
+            }
+
+            for (String requiredField : requiredFields) {
+                if (isBlank(readProperty(entry, requiredField))) {
+                    missingDocuments.add(path + "[" + i + "]." + requiredField);
+                }
+            }
+        }
+    }
+
+    private boolean isYes(String value) {
+        return value != null && "yes".equalsIgnoreCase(value.trim());
+    }
+
+    private boolean hasEntries(List<?> entries) {
+        return entries != null && !entries.isEmpty();
+    }
+
+    private String readProperty(Object target, String propertyName) {
+        try {
+            PropertyDescriptor descriptor = new PropertyDescriptor(propertyName, target.getClass());
+            Object value = descriptor.getReadMethod().invoke(target);
+            return value == null ? null : value.toString();
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Unable to read property '" + propertyName + "' from " + target.getClass().getSimpleName(), e);
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     public boolean isApplicationEditable(String status) {
