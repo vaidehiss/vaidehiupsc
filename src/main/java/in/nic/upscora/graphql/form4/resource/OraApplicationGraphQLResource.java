@@ -1,5 +1,6 @@
 package in.nic.upscora.graphql.form4.resource;
 
+import in.nic.upscora.graphql.form4.exceptions.ApplicationNotFoundException;
 import org.eclipse.microprofile.graphql.*;
 import java.util.List;
 
@@ -257,9 +258,25 @@ public class OraApplicationGraphQLResource {
                 log.info("addApplicant | request={}", safeJson(applicantInfo));
                 boolean testing = isTestingRequest();
                 log.info("addApplicant | x-user-role={} | testing={}", getUserRoleHeader(), testing);
-                OraApplication response = oraService.createApplication(applicantInfo, testing);
-                log.info("addApplicant | response={}", safeJson(response));
-                return response;
+
+                try {
+                        OraApplication response = oraService.createApplication(applicantInfo, testing);
+                        log.info("addApplicant | response={}", safeJson(response));
+                        return response;
+                } catch (ApplicationNotFoundException e) {
+                        // Known business exceptions — pass message through as-is
+                        log.warn("addApplicant | KNOWN_ERROR | message={}", e.getMessage());
+                        throw e;
+                } catch (GraphQLException e) {
+                        // Already wrapped GraphQL exceptions
+                        log.error("addApplicant | GRAPHQL_ERROR | message={}", e.getMessage());
+                        throw e;
+                } catch (Exception e) {
+                        // Catch-all — never expose internal details to client
+                        log.error("addApplicant | UNEXPECTED_ERROR | message={}", e.getMessage(), e);
+                        throw new GraphQLException("Something went wrong. Please try again later.");
+                }
+
 
         }
 
