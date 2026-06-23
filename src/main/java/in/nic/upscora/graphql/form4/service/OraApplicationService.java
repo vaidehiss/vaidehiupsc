@@ -11,6 +11,7 @@ import in.nic.upscora.graphql.form4.exceptions.ApplicationNotFoundException;
 import in.nic.upscora.graphql.form4.mongo.entity.application.OraApplication;
 import in.nic.upscora.graphql.form4.mongo.entity.application.OraApplicationAudit;
 import in.nic.upscora.graphql.form4.mongo.entity.application.PaymentDetails;
+import in.nic.upscora.graphql.form4.mongo.entity.application.UserDetails;
 import in.nic.upscora.graphql.form4.mongo.entity.caf.CandidateProfile;
 import in.nic.upscora.graphql.form4.mongo.entity.caf.PreIdentity;
 import in.nic.upscora.graphql.form4.mongo.entity.userprofile.UserProfile;
@@ -260,6 +261,7 @@ public class OraApplicationService {
         }
 
         CandidateProfile candidateProfile = getCandidateProfile(applicantUrn);
+        UserProfile userProfile = userRepo.findById(Long.parseLong(applicantUrn));
 
         oraApplication.setCaf_details(candidateProfile);
         oraApplication.getApplication_info().setCafLocked(true);
@@ -280,7 +282,7 @@ public class OraApplicationService {
             throw e;
         }
         // Send CAF Locked Notification
-        UserProfile userProfile = userRepo.findById(Long.parseLong(applicantUrn));
+        //UserProfile userProfile = userRepo.findById(Long.parseLong(applicantUrn));
         if (userProfile != null) {
             oraApplicationHelper.sendCafLockedNotifications(userProfile, oraApplication);
         }
@@ -302,7 +304,12 @@ public class OraApplicationService {
                 applicationId,
                 newOraApplication.getApplicant_info().getApplicant_urn(),
                 vacancyId);
-        oraApplication.setValues(newOraApplication.getApplicant_info(), applicationId, candidateProfile);
+        UserProfile userProfile = userRepo.findById(Long.parseLong(applicantUrn));
+        oraApplication.setValues(newOraApplication.getApplicant_info(), applicationId, candidateProfile,
+                UserDetails.builder()
+                        .email(userProfile != null ? userProfile.getEmail() : null)
+                        .mobileNo(userProfile != null ? userProfile.getMobileNo() : null)
+                        .build());
         oraApplication.setStatus("DRAFT");
         oraApplication.setSubmitDeclarationAccepted(false);
         oraApplication.setCenterDeclarationAccepted(false);
@@ -324,7 +331,6 @@ public class OraApplicationService {
             throw e;
         }
         // Send CAF Locked Notification
-        UserProfile userProfile = userRepo.findById(Long.parseLong(applicantUrn));
         if (userProfile != null) {
             oraApplicationHelper.sendCafLockedNotifications(userProfile, oraApplication);
         }

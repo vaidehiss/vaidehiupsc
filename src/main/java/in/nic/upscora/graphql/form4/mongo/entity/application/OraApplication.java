@@ -53,6 +53,8 @@ public class OraApplication {
     
     private OraApplicationInfo application_info;
     private CandidateProfile caf_details;
+    private UserDetails user_details; 
+
 
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
@@ -130,12 +132,14 @@ public class OraApplication {
 
 
 
-    public void setValues(AllRequestCommonInfo application_info, Long applicationId, CandidateProfile caf_details) {
+   public void setValues(AllRequestCommonInfo application_info, Long applicationId, CandidateProfile caf_details,
+            UserDetails userDetails) {
         this.setApplicant_urn(application_info.getApplicant_urn());
         this.setApplicationId(applicationId);
         this.setVacancyId(application_info.getVacancyId());
         this.setApplication_info(new OraApplicationInfo(application_info));
         this.setCaf_details(caf_details);
+        this.setUser_details(userDetails);
         this.getApplication_info().setCafLocked(true);
      
     }
