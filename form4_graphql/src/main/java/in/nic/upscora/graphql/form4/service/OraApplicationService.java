@@ -758,7 +758,7 @@ public class OraApplicationService {
         OraApplication currentApplication = getApplicationByUrnAndVacany(
                 updateRequest.getApplicant_info().getApplicant_urn(),
                 updateRequest.getApplicant_info().getVacancyId());
-        validateRequiredDocumentsForSubmission(currentApplication);
+        //validateRequiredDocumentsForSubmission(currentApplication);
 
         OraApplication oraApplication = processApplicationUpdate(
                 updateRequest.getApplicant_info().getApplicant_urn(),
