@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   registry: registry.kube-system.svc.cluster.local
   repository: form4-graphql
-  tag: "local-20260708-4"
+  tag: "test-1783504254"
   pullPolicy: IfNotPresent
 imagePullSecrets: []
 nameOverride: ""
