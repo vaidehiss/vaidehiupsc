@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   registry: 192.168.49.2:30082
   repository: form4-graphql
-  tag: "test-1783504254"
+  tag: "test-1783506872"
   pullPolicy: IfNotPresent
 imagePullSecrets:
   - name: nexus-pull-secret
