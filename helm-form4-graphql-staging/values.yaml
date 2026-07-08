@@ -4,7 +4,8 @@ image:
   repository: form4-graphql
   tag: "test-1783504254"
   pullPolicy: IfNotPresent
-imagePullSecrets: []
+imagePullSecrets:
+  - name: nexus-pull-secret
 nameOverride: ""
 fullnameOverride: ""
 configmapname: "form4-graphql-query"
