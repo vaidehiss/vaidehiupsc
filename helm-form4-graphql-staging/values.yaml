@@ -1,6 +1,6 @@
 replicaCount: 1
 image:
-  registry: 10.212.108.81:6001/ora
+  registry: registry.kube-system.svc.cluster.local
   repository: form4-graphql
   tag: "local-20260708-1208"
   pullPolicy: IfNotPresent
