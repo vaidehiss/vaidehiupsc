@@ -1,11 +1,19 @@
 replicaCount: 1
 image:
-  registry: 192.168.49.2:30082
+  registry: 10.212.108.81:6001/ora
   repository: form4-graphql
   tag: "test-1783506872"
   pullPolicy: IfNotPresent
-imagePullSecrets:
-  - name: nexus-pull-secret
+# registry ko auth nahi chahiye, isliye pull secret khaali
+imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 configmapname: "form4-graphql-query"
+# App pod ko CICD nodes pe bhejne ke liye:
+nodeSelector:
+  node-role.kubernetes.io/cicdworker: ""
+tolerations:
+  - key: "dedicated"
+    operator: "Equal"
+    value: "cicd"
+    effect: "NoSchedule"
