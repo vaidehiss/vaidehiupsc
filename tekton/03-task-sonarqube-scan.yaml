@@ -1,0 +1,41 @@
+# ============================================================
+# TASK 3: SonarQube Scan (code quality)
+# Diagram step: "SonarQube Scan"
+# NOTE: Tumne bola SonarQube ka pata nahi. Isliye yeh task
+#       OPTIONAL hai - agar sonar-host-url khaali hai to skip ho jayega.
+#       Baad me server + token mil jaye to values bhar dena.
+# ============================================================
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: sonarqube-scan
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: sonar-host-url
+      type: string
+      default: ""   # khaali = skip
+      description: SonarQube server URL (khaali chhodo to scan skip hoga)
+    - name: sonar-token
+      type: string
+      default: ""
+      description: SonarQube auth token
+  workspaces:
+    - name: source
+  steps:
+    - name: scan
+      image: 10.212.108.81:6001/ora/maven:3.9-eclipse-temurin-17
+      workingDir: $(workspaces.source.path)/repo
+      script: |
+        #!/bin/bash
+        set -e
+        if [ -z "$(params.sonar-host-url)" ]; then
+          echo ">>> SonarQube URL khaali hai - scan SKIP kar rahe hain."
+          echo ">>> Baad me sonar-host-url aur sonar-token bhar ke enable karna."
+          exit 0
+        fi
+        echo ">>> SonarQube scan chal raha hai..."
+        ./mvnw -B sonar:sonar \
+          -Dsonar.host.url=$(params.sonar-host-url) \
+          -Dsonar.login=$(params.sonar-token)
+        echo ">>> Scan done"

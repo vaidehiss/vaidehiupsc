@@ -1,0 +1,103 @@
+# ============================================================
+# PIPELINE: Saare tasks ko diagram ke order me jodta hai
+# Flow: clone -> build -> sonar -> podman build/push -> gitops update
+# Har task 'runAfter' se pichle task ka wait karta hai (sequence).
+# ============================================================
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: form4-graphql-pipeline
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: repo-url
+      type: string
+    - name: revision
+      type: string
+      default: "feature/tekton-argocd-pipeline"
+    - name: image
+      type: string
+      default: "10.212.108.81:6001/ora/form4-graphql"
+    - name: tag
+      type: string
+    - name: gitops-repo-url
+      type: string
+    - name: values-path
+      type: string
+      default: "helm-form4-graphql-staging/values.yaml"
+    - name: sonar-host-url
+      type: string
+      default: ""
+    - name: sonar-token
+      type: string
+      default: ""
+  workspaces:
+    - name: shared-source      # code yahan rahega, sab tasks share karenge
+    - name: git-auth           # git push ke liye
+
+  tasks:
+    # 1. Clone
+    - name: clone
+      taskRef:
+        name: git-clone
+      params:
+        - name: repo-url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.revision)
+      workspaces:
+        - name: source
+          workspace: shared-source
+
+    # 2. Build (download deps + build) - clone ke baad
+    - name: build
+      taskRef:
+        name: maven-build
+      runAfter: [clone]
+      workspaces:
+        - name: source
+          workspace: shared-source
+
+    # 3. SonarQube (optional) - build ke baad
+    - name: sonar
+      taskRef:
+        name: sonarqube-scan
+      runAfter: [build]
+      params:
+        - name: sonar-host-url
+          value: $(params.sonar-host-url)
+        - name: sonar-token
+          value: $(params.sonar-token)
+      workspaces:
+        - name: source
+          workspace: shared-source
+
+    # 4. Podman build + push - sonar ke baad
+    - name: image-build
+      taskRef:
+        name: podman-build-push
+      runAfter: [sonar]
+      params:
+        - name: image
+          value: $(params.image)
+        - name: tag
+          value: $(params.tag)
+      workspaces:
+        - name: source
+          workspace: shared-source
+
+    # 5. GitOps update - image push hone ke baad
+    - name: gitops
+      taskRef:
+        name: update-gitops
+      runAfter: [image-build]
+      params:
+        - name: gitops-repo-url
+          value: $(params.gitops-repo-url)
+        - name: values-path
+          value: $(params.values-path)
+        - name: new-tag
+          value: $(params.tag)
+      workspaces:
+        - name: git-auth
+          workspace: git-auth

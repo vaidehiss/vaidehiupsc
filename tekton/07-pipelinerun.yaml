@@ -1,0 +1,45 @@
+# ============================================================
+# PIPELINERUN: Pipeline ko MANUALLY start karta hai
+# Diagram step: "Start Tekton Pipeline (Manual)"
+# Isse chalane ke liye: kubectl create -f 07-pipelinerun.yaml
+# (create use karo, apply nahi - har run naya hona chahiye)
+#
+# NOTE: 'tag' me har baar naya value daalo, ya generateName use karo.
+# ============================================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: form4-graphql-run-   # har run ka unique naam
+  namespace: tekton-pipelines
+spec:
+  pipelineRef:
+    name: form4-graphql-pipeline
+  params:
+    - name: repo-url
+      value: "https://github.com/vaidehiss/vaidehiupsc.git"
+    - name: revision
+      value: "feature/tekton-argocd-pipeline"
+    - name: image
+      value: "10.212.108.81:6001/ora/form4-graphql"
+    - name: tag
+      value: "test-CHANGEME"          # <-- har run me badlo, jaise test-001
+    - name: gitops-repo-url
+      value: "https://github.com/vaidehiss/vaidehiupsc.git"
+    - name: values-path
+      value: "helm-form4-graphql-staging/values.yaml"
+    # SonarQube khaali = skip. Baad me bharna:
+    - name: sonar-host-url
+      value: ""
+    - name: sonar-token
+      value: ""
+  workspaces:
+    - name: shared-source
+      volumeClaimTemplate:
+        spec:
+          accessModes: [ReadWriteOnce]
+          resources:
+            requests:
+              storage: 1Gi
+    - name: git-auth
+      secret:
+        secretName: gitops-git-auth     # git push token (neeche banayenge)

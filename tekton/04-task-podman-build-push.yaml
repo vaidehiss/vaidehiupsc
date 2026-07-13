@@ -1,0 +1,40 @@
+# ============================================================
+# TASK 4: Podman se image build + private registry pe push
+# Diagram steps: "Podman Build" + "Push Image" -> "Private Docker Registry"
+# ============================================================
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: podman-build-push
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: image
+      type: string
+      description: Poora image naam (registry/repo)
+    - name: tag
+      type: string
+      description: Image tag (jaise test-<timestamp>)
+    - name: dockerfile
+      type: string
+      default: "src/main/docker/Dockerfile.jvm"
+  workspaces:
+    - name: source
+    - name: registry-creds
+      description: Registry login ke liye (docker config json)
+      optional: true
+  steps:
+    - name: build-and-push
+      image: 10.212.108.81:6001/ora/podman:latest
+      workingDir: $(workspaces.source.path)/repo
+      securityContext:
+        privileged: true
+      script: |
+        #!/bin/bash
+        set -e
+        FULL_IMAGE="$(params.image):$(params.tag)"
+        echo ">>> Building image: ${FULL_IMAGE}"
+        podman build -f $(params.dockerfile) -t ${FULL_IMAGE} .
+        echo ">>> Pushing to private registry..."
+        podman push ${FULL_IMAGE}
+        echo ">>> Image pushed: ${FULL_IMAGE}"

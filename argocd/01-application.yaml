@@ -1,0 +1,41 @@
+# ============================================================
+# ARGOCD APPLICATION
+# Diagram steps: "Argo CD detects commit" + "Sync Cluster"
+#                + "Rolling Update" + "Application Running"
+#
+# Yeh GitOps repo ki staging Helm chart ko watch karta hai.
+# Jab Tekton values.yaml me naya tag push karega, ArgoCD
+# apne aap detect karke form4-test namespace me deploy karega.
+# ============================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: form4-graphql-test
+  namespace: argocd
+  # cascade delete: app delete karo to resources bhi hatein
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: "https://github.com/vaidehiss/vaidehiupsc.git"
+    targetRevision: "feature/tekton-argocd-pipeline"
+    path: "helm-form4-graphql-staging"      # Helm chart yahan hai
+    helm:
+      # yahan hum registry ko tumhare private registry pe override kar rahe hain
+      # (chart me abhi 192.168.49.2 minikube wala tha)
+      parameters:
+        - name: image.registry
+          value: "10.212.108.81:6001/ora"
+
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: form4-test                    # naya safe namespace
+
+  syncPolicy:
+    automated:                               # AUTO-SYNC (diagram jaisa)
+      prune: true                            # git se hataya to cluster se bhi hatega
+      selfHeal: true                         # manual drift ko wapas git jaisa karega
+    syncOptions:
+      - CreateNamespace=true                 # form4-test khud ban jayega

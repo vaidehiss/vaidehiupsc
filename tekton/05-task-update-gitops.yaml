@@ -1,0 +1,58 @@
+# ============================================================
+# TASK 5: GitOps repo update (yeh diagram ka DIL hai)
+# Diagram steps: "Clone GitOps Repository" + "Update Helm values.yaml"
+#                + "Commit & Push GitOps Repository"
+# Yahan hum Helm chart ki values.yaml me naya image tag likhte hain.
+# ArgoCD isi commit ko detect karke deploy karega.
+# RBAC BOUNDARY: yahan pipeline ka kaam khatam. Cluster ko touch nahi karta.
+# ============================================================
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: update-gitops
+  namespace: tekton-pipelines
+spec:
+  params:
+    - name: gitops-repo-url
+      type: string
+    - name: gitops-branch
+      type: string
+      default: "feature/tekton-argocd-pipeline"
+    - name: values-path
+      type: string
+      default: "helm-form4-graphql-staging/values.yaml"
+      description: Kis values.yaml me tag update karna hai
+    - name: new-tag
+      type: string
+    - name: git-user-email
+      type: string
+      default: "tekton-ci@upsc.local"
+    - name: git-user-name
+      type: string
+      default: "tekton-ci"
+  workspaces:
+    - name: git-auth
+      description: Git push ke liye credentials (token)
+  steps:
+    - name: update-and-push
+      image: 10.212.108.81:6001/ora/alpine/git:latest
+      script: |
+        #!/bin/sh
+        set -e
+        cd /tmp
+        echo ">>> GitOps repo clone kar rahe hain"
+        git clone --branch $(params.gitops-branch) $(params.gitops-repo-url) gitops
+        cd gitops
+
+        echo ">>> values.yaml me naya tag daal rahe hain: $(params.new-tag)"
+        # sirf 'tag:' wali line update hogi
+        sed -i "s|^\( *tag:\).*|\1 \"$(params.new-tag)\"|" $(params.values-path)
+        echo ">>> Updated values.yaml:"
+        grep -A1 "image:" $(params.values-path) || true
+
+        git config user.email "$(params.git-user-email)"
+        git config user.name "$(params.git-user-name)"
+        git add $(params.values-path)
+        git commit -m "chore(staging): update image tag to $(params.new-tag) [skip ci]"
+        git push origin $(params.gitops-branch)
+        echo ">>> GitOps repo updated & pushed. ArgoCD ab detect karega."

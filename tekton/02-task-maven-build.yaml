@@ -1,0 +1,26 @@
+# ============================================================
+# TASK 2: Dependencies download + Application build
+# Diagram steps: "Download Dependencies" + "Build Application"
+# Quarkus/Maven app hai, isliye ./mvnw package chalega
+# ============================================================
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: maven-build
+  namespace: tekton-pipelines
+spec:
+  workspaces:
+    - name: source
+      description: Cloned code (git-clone task se aaya)
+  steps:
+    - name: build
+      image: 10.212.108.81:6001/ora/maven:3.9-eclipse-temurin-17
+      workingDir: $(workspaces.source.path)/repo
+      script: |
+        #!/bin/bash
+        set -e
+        echo ">>> Maven build shuru (dependencies + package)"
+        # -DskipTests test ke liye; baad me hata sakte ho
+        ./mvnw -B clean package -DskipTests
+        echo ">>> Build done, jar bana:"
+        ls -la target/*.jar
