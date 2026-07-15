@@ -2,7 +2,7 @@ replicaCount: 1
 image:
   registry: 10.212.108.81:6001/ora
   repository: form4-graphql
-  tag: "test-1783506872"
+  tag: "test-001"
   pullPolicy: IfNotPresent
 # registry ko auth nahi chahiye, isliye pull secret khaali
 imagePullSecrets: []
